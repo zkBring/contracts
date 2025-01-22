@@ -3,9 +3,9 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./Drop.sol";
+import "./BringDrop.sol";
 
-contract DropFactory {
+contract BringFactory is Ownable {
     using Clones for address;
 
     address public immutable dropImplementation;
@@ -13,7 +13,7 @@ contract DropFactory {
     address public feeRecipient;
     uint256 public feeAmount; // Fee percentage in basis points (e.g., 30 = 0.3%)
     
-    event DropCreated(address indexed dropAddress, address indexed dropper, address indexed token, uint256 amount, uint256 maxClaims);
+    event DropCreated(address indexed dropAddress, address indexed bringer, address indexed token, uint256 amount, uint256 maxClaims);
     event FeeUpdated(uint256 newFeeAmount);
     event FeeRecipientUpdated(address newFeeRecipient);
     
@@ -21,7 +21,7 @@ contract DropFactory {
         require(_feeRecipient != address(0), "Invalid fee recipient");
         require(_feeAmount <= 100, "Fee cannot exceed 1%");
         
-        dropImplementation = address(new Drop());
+        dropImplementation = address(new BringDrop());
         reclaimAddress = _reclaimAddress;
         feeRecipient = _feeRecipient;
         feeAmount = _feeAmount;
@@ -46,7 +46,7 @@ contract DropFactory {
         string[] memory _providersHashes
     ) external {
         address clone = dropImplementation.clone();
-        Drop(clone).initialize(msg.sender, _token, _amount, _maxClaims, _providersHashes, reclaimAddress, , feeRecipient, feeAmount);
-        emit DropCreated(_clone, msg.sender, token, amount, maxClaims);
+        BringDrop(clone).initialize(msg.sender, _token, _amount, _maxClaims, _providersHashes, reclaimAddress, feeRecipient, feeAmount);
+        emit DropCreated(clone, msg.sender, _token, _amount, _maxClaims);
     }
 }

@@ -4,13 +4,13 @@ pragma solidity ^0.8.18;
 import "@reclaimprotocol/verifier-solidity-sdk/contracts/Reclaim.sol";
 import "@reclaimprotocol/verifier-solidity-sdk/contracts/Addresses.sol";
 
-contract Drop {
+contract BringDrop {
     address public token;
     uint256 public amount;
     uint256 public maxClaims;
     uint256 public claimed;
     address public reclaimAddress;
-    address public dropper;
+    address public bringer;
     address public feeRecipient;
     uint256 public feeAmount; // Fee percentage in basis points
 
@@ -21,7 +21,7 @@ contract Drop {
     event Claimed(address indexed destination, bytes32 reclaimProof);
 
     function initialize(
-                        address _dropper,
+                        address _bringer,
                         address _token,
                         uint256 _amount,
                         uint256 _maxClaims,
@@ -37,7 +37,7 @@ contract Drop {
         amount = _amount;
         maxClaims = _maxClaims;
         claimed = 0;
-        dropper = _dropper;
+        bringer = _bringer;
         feeRecipient = _feeRecipient;
         feeAmount = _feeAmount;
         
@@ -62,10 +62,10 @@ contract Drop {
         claimed++;       
         
         // Transfer fee to the fee recipient
-        TransferHelper.safeTransferFrom(token, dropper, feeRecipient, fee);
+        TransferHelper.safeTransferFrom(token, bringer, feeRecipient, fee);
 
         // Transfer remaining amount to the destination
-        TransferHelper.safeTransferFrom(token, dropper, destination, amountAfterFee);
+        TransferHelper.safeTransferFrom(token, bringer, destination, amountAfterFee);
         
         emit Claimed(destination, proofHash);        
     }
