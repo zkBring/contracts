@@ -5,11 +5,8 @@ interface IBringDropCommon {
 
     function initialize
     (
-        address _owner,
         address _dropCreator,
-        uint _version,
-        uint _chainId,
-        uint _claimPattern
+        uint _version
     )
     external returns (bool);
 

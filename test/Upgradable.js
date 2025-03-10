@@ -62,7 +62,7 @@ describe('Proxy upgradability tests', () => {
     expect(factoryChainId).to.not.eq(0)
 
     let masterCopyOwner = await masterCopy.factory()
-    expect(masterCopyOwner).to.eq(ethers.ZeroAddress)
+    expect(masterCopyOwner).to.eq(factory.target)
 
     let masterCopyLinkdropMaster = await masterCopy.dropCreator()
     expect(masterCopyLinkdropMaster).to.eq(ethers.ZeroAddress)

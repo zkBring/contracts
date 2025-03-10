@@ -96,11 +96,8 @@ contract BringFactoryCommon is Ownable {
         (
             IBringDropCommon(proxy).initialize
             (
-                address(this), // factory address
                 _dropCreator, // BringDrop master address
-                dropContractVersion,
-                chainId,
-                0
+                dropContractVersion
             ),
             "INITIALIZATION_FAILED"
         );
@@ -148,11 +145,8 @@ contract BringFactoryCommon is Ownable {
         (
             IBringDropCommon(_masterCopy).initialize
             (
-                address(0), // Owner address
                 address(0), // BringDrop master address
-                dropContractVersion,
-                chainId,
-                uint(0) // transfer pattern (mint tokens on claim or transfer pre-minted tokens) 
+                dropContractVersion
             ),
             "INITIALIZATION_FAILED"
         );

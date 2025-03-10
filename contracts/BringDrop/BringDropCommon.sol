@@ -47,24 +47,20 @@ contract BringDropCommon is IBringDropCommon {
     
     /**
     * @dev Function called only once to set factory, BringDrop master, contract version and chain id
-    * @param _factory Factory address
     * @param _dropCreator Address corresponding to master key
     * @param _version Contract version
     */
     function initialize
     (
-        address _factory,
         address _dropCreator,
-        uint _version,
-        uint /* _chainId */,
-        uint /* _claimPattern */ 
+        uint _version
     )
     public
     override      
     returns (bool)
     {
         require(!initialized, "BRINGDROP_PROXY_CONTRACT_ALREADY_INITIALIZED");
-        factory = _factory;
+        factory = msg.sender;
         dropCreator = _dropCreator;
         isDropSigner[dropCreator] = true;
         version = _version;
