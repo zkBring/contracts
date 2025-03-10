@@ -106,15 +106,6 @@ describe('Proxy upgradability tests', () => {
     expect(owner).to.eq(factory.target)
   })
 
-  // it('should deploy second version of mastercopy', async () => {
-  //   let { factory, masterCopy, linkdropMaster, linkdropSigner } = await loadFixture(deployFactoryFixture);
-  //   let oldMasterCopyAddress = masterCopy.target
-
-  //   await loadFixture(deployFactoryFixture);    
-  //   expect(masterCopy.target).to.not.eq(ethers.ZeroAddress)
-  //   expect(masterCopy.target).to.not.eq(oldMasterCopyAddress)
-  // })
-
   async function deployCombinedFixture() {
     // Deploy factory and its initial master copy
     let { factory, masterCopy, linkdropMaster, linkdropSigner } = await deployFactoryFixture();
