@@ -19,5 +19,9 @@
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.0",
     "typechain": "^8.3.0"
+  },
+  "dependencies": {
+    "@reclaimprotocol/verifier-solidity-sdk": "^1.0.4",
+    "openzeppelin-solidity": "4.8.1"
   }
 }
