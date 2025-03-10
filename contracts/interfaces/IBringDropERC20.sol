@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
 
-interface ILinkdropERC20 {
+interface IBringDropERC20 {
 
-    function verifyLinkdropSignerSignature
+    function verifyDropSignerSignature
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
         bytes calldata _signature
@@ -15,11 +15,11 @@ interface ILinkdropERC20 {
 
     function checkClaimParams
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _linkdropSignerSignature,
+        bytes calldata _dropSignerSignature,
         address _receiver,
         bytes calldata _receiverSignature
     )
@@ -27,11 +27,11 @@ interface ILinkdropERC20 {
 
     function claim
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _linkdropSignerSignature,
+        bytes calldata _dropSignerSignature,
         address _receiver,
         bytes calldata _receiverSignature
     )

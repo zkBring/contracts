@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: GPL-3.0AA
 pragma solidity ^0.8.17;
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
-import "../interfaces/ILinkdropCommon.sol";
+import "../interfaces/IBringDropCommon.sol";
 
-contract LinkdropFactoryCommon is Ownable {
+contract BringFactoryCommon is Ownable {
 
     // Current version of mastercopy contract
-    uint public masterCopyVersion;
+    uint public dropContractVersion;
     
     // Contract bytecode to be installed when deploying proxy
     bytes internal _bytecode;
@@ -26,30 +26,30 @@ contract LinkdropFactoryCommon is Ownable {
 
     
     /**
-    * @dev Indicates whether a proxy contract for linkdrop master is deployed or not
-    * @param _linkdropMaster Address of linkdrop master
+    * @dev Indicates whether a proxy contract for BringDrop master is deployed or not
+    * @param _dropCreator Address of BringDrop master
     * @param _campaignId Campaign id
     * @return True if deployed
     */
-    function isDeployed(address _linkdropMaster, uint _campaignId) public view returns (bool) {
-        return (deployed[salt(_linkdropMaster, _campaignId)] != address(0));
+    function isDeployed(address _dropCreator, uint _campaignId) public view returns (bool) {
+        return (deployed[salt(_dropCreator, _campaignId)] != address(0));
     }
 
     /**
     * @dev Indicates whether a link is claimed or not
-    * @param _linkdropMaster Address of lindkrop master
+    * @param _dropCreator Account that created drop
     * @param _campaignId Campaign id
     * @param _linkId Address corresponding to link key
     * @return True if claimed
     */
-    function isClaimedLink(address _linkdropMaster, uint _campaignId, address _linkId) public view returns (bool) {
+    function isClaimedLink(address _dropCreator, uint _campaignId, address _linkId) public view returns (bool) {
 
-        if (!isDeployed(_linkdropMaster, _campaignId)) {
+        if (!isDeployed(_dropCreator, _campaignId)) {
             return false;
         }
         else {
-            address proxy = address(uint160(deployed[salt(_linkdropMaster, _campaignId)]));
-            return ILinkdropCommon(proxy).isClaimedLink(_linkId);
+            address proxy = address(uint160(deployed[salt(_dropCreator, _campaignId)]));
+            return IBringDropCommon(proxy).isClaimedLink(_linkId);
         }
     }
 
@@ -57,33 +57,31 @@ contract LinkdropFactoryCommon is Ownable {
     * @dev Function to deploy a proxy contract for msg.sender and add a new signing key
     * @param _campaignId Campaign id
     * @param _signer Address corresponding to signing key
-    * @param _claimPattern which pattern the campaign will use (mint on claim, transfer pre-minted tokens, etc)
     * @return proxy Proxy contract address
     */
-    function deployProxyWithSigner(uint _campaignId, address _signer, uint _claimPattern)
+    function createDrop(uint _campaignId, address _signer)
     public
     returns (address proxy)
     {
-        proxy = _deployProxy(msg.sender, _campaignId, _claimPattern);
-        ILinkdropCommon(proxy).addSigner(_signer);
+        proxy = _deployProxy(msg.sender, _campaignId);
+        IBringDropCommon(proxy).addSigner(_signer);
     }
 
     /**
-    * @dev Internal function to deploy a proxy contract for linkdrop master
-    * @param _linkdropMaster Address of linkdrop master
+    * @dev Internal function to deploy a proxy contract for BringDrop master
+    * @param _dropCreator Address of drop creator
     * @param _campaignId Campaign id
-    * @param _claimPattern which pattern the campaign will use (mint on claim, transfer pre-minted tokens, etc)
     * @return proxy Proxy contract address
     */
-    function _deployProxy(address _linkdropMaster, uint _campaignId, uint _claimPattern)
+    function _deployProxy(address _dropCreator, uint _campaignId)
     internal
     returns (address proxy)
     {
 
-        require(!isDeployed(_linkdropMaster, _campaignId), "LINKDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
-        require(_linkdropMaster != address(0), "INVALID_LINKDROP_MASTER_ADDRESS");
+        require(!isDeployed(_dropCreator, _campaignId), "BRINGDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
+        require(_dropCreator != address(0), "INVALID_BRINGDROP_MASTER_ADDRESS");
 
-        bytes32 _salt = salt(_linkdropMaster, _campaignId);
+        bytes32 _salt = salt(_dropCreator, _campaignId);
         bytes memory initcode = getInitcode();
 
         assembly {
@@ -93,21 +91,21 @@ contract LinkdropFactoryCommon is Ownable {
 
         deployed[_salt] = proxy;
 
-        // Initialize factory address, linkdrop master address master copy version in proxy contract
+        // Initialize factory address, BringDrop master address master copy version in proxy contract
         require
         (
-            ILinkdropCommon(proxy).initialize
+            IBringDropCommon(proxy).initialize
             (
                 address(this), // factory address
-                _linkdropMaster, // Linkdrop master address
-                masterCopyVersion,
+                _dropCreator, // BringDrop master address
+                dropContractVersion,
                 chainId,
-                _claimPattern
+                0
             ),
             "INITIALIZATION_FAILED"
         );
 
-        emit Deployed(_linkdropMaster, _campaignId, proxy, _salt);
+        emit Deployed(_dropCreator, _campaignId, proxy, _salt);
         return proxy;
     }
 
@@ -136,7 +134,7 @@ contract LinkdropFactoryCommon is Ownable {
 
     /**
     * @dev Function to set new master copy and update contract bytecode to install. Can only be called by factory owner
-    * @param _masterCopy Address of linkdrop mastercopy contract to calculate bytecode from
+    * @param _masterCopy Address of BringDrop mastercopy contract to calculate bytecode from
     * @return True if updated successfully
     */
     function setMasterCopy(address _masterCopy)
@@ -144,15 +142,15 @@ contract LinkdropFactoryCommon is Ownable {
     returns (bool)
     {
         require(_masterCopy != address(0), "INVALID_MASTER_COPY_ADDRESS");
-        masterCopyVersion = masterCopyVersion + 1;
+        dropContractVersion = dropContractVersion + 1;
 
         require
         (
-            ILinkdropCommon(_masterCopy).initialize
+            IBringDropCommon(_masterCopy).initialize
             (
                 address(0), // Owner address
-                address(0), // Linkdrop master address
-                masterCopyVersion,
+                address(0), // BringDrop master address
+                dropContractVersion,
                 chainId,
                 uint(0) // transfer pattern (mint tokens on claim or transfer pre-minted tokens) 
             ),
@@ -168,34 +166,34 @@ contract LinkdropFactoryCommon is Ownable {
 
         _bytecode = bytecode;
 
-        emit SetMasterCopy(_masterCopy, masterCopyVersion);
+        emit SetMasterCopy(_masterCopy, dropContractVersion);
         return true;
     }
 
     /**
     * @dev Function to fetch the master copy version installed (or to be installed) to proxy
-    * @param _linkdropMaster Address of linkdrop master
+    * @param _dropCreator Address of BringDrop master
     * @param _campaignId Campaign id
     * @return Master copy version
     */
-    function getProxyMasterCopyVersion(address _linkdropMaster, uint _campaignId) external view returns (uint) {
+    function getProxyMasterCopyVersion(address _dropCreator, uint _campaignId) external view returns (uint) {
 
-        if (!isDeployed(_linkdropMaster, _campaignId)) {
-            return masterCopyVersion;
+        if (!isDeployed(_dropCreator, _campaignId)) {
+            return dropContractVersion;
         }
         else {
-            address proxy = address(uint160(deployed[salt(_linkdropMaster, _campaignId)]));
-            return ILinkdropCommon(proxy).getMasterCopyVersion();
+            address proxy = address(uint160(deployed[salt(_dropCreator, _campaignId)]));
+            return IBringDropCommon(proxy).getMasterCopyVersion();
         }
     }
 
     /**
-     * @dev Function to hash `_linkdropMaster` and `_campaignId` params. Used as salt when deploying with create2
-     * @param _linkdropMaster Address of linkdrop master
+     * @dev Function to hash `_dropCreator` and `_campaignId` params. Used as salt when deploying with create2
+     * @param _dropCreator Address of BringDrop master
      * @param _campaignId Campaign id
      * @return Hash of passed arguments
      */
-    function salt(address _linkdropMaster, uint _campaignId) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_linkdropMaster, _campaignId));
+    function salt(address _dropCreator, uint _campaignId) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_dropCreator, _campaignId));
     }
   }

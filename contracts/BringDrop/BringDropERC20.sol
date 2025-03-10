@@ -2,24 +2,24 @@
 pragma solidity ^0.8.17;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/ILinkdropERC20.sol";
-import "./LinkdropCommon.sol";
+import "../interfaces/IBringDropERC20.sol";
+import "./BringDropCommon.sol";
 
-contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
+contract BringDropERC20 is IBringDropERC20, BringDropCommon {
      
     /**
-    * @dev Function to verify linkdrop signer's signature
-    * @param _tokenAddress Token address
-    * @param _tokenAmount Amount of tokens to be claimed (in atomic value)
+    * @dev Function to verify BringDrop signer's signature
+    * @param _token Token address
+    * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _expiration Unix timestamp of link expiration time
     * @param _linkId Address corresponding to link key
-    * @param _signature ECDSA signature of linkdrop signer
-    * @return True if signed with linkdrop signer's private key
+    * @param _signature ECDSA signature of BringDrop signer
+    * @return True if signed with BringDrop signer's private key
     */
-    function verifyLinkdropSignerSignature
+    function verifyDropSignerSignature
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
         bytes memory _signature
@@ -35,39 +35,38 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
                 abi.encodePacked
                 (
                  uint(0),
-                    _tokenAddress,
-                    _tokenAmount,
-                    _expiration,
-                    version,
-                    chainId,
-                    _linkId,
-                    address(this)
+                 _token,
+                 _amount,
+                 _expiration,
+                 version,
+                 chainId,
+                 _linkId,
+                 address(this)
                 )
             )
         );
         address signer = ECDSA.recover(prefixedHash, _signature);
-        return isLinkdropSigner[signer];
+        return isDropSigner[signer];
     }
-
 
     /**
     * @dev Function to verify claim params and make sure the link is not claimed or canceled
-    * @param _tokenAddress Token address
-    * @param _tokenAmount Amount of tokens to be claimed (in atomic value)
+    * @param _token Token address
+    * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _expiration Unix timestamp of link expiration time
     * @param _linkId Address corresponding to link key
-    * @param _linkdropSignerSignature ECDSA signature of linkdrop signer
-    * @param _receiver Address of linkdrop receiver
-    * @param _receiverSignature ECDSA signature of linkdrop receiver,
+    * @param _dropSignerSignature ECDSA signature of BringDrop signer
+    * @param _receiver Address of BringDrop receiver
+    * @param _receiverSignature ECDSA signature of BringDrop receiver,
     * @return True if success
     */
     function checkClaimParams
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
-        bytes memory _linkdropSignerSignature,
+        bytes memory _dropSignerSignature,
         address _receiver,
         bytes memory _receiverSignature
      )
@@ -77,7 +76,7 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
     returns (bool)
     {
         // If tokens are being claimed
-        require(_tokenAddress != address(0), "INVALID_TOKEN_ADDRESS");
+        require(_token != address(0), "INVALID_TOKEN_ADDRESS");
 
         // Make sure link is not claimed
         require(isClaimedLink(_linkId) == false, "LINK_CLAIMED");
@@ -89,31 +88,25 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
         require(_expiration >= block.timestamp, "LINK_EXPIRED");
 
         // Make sure tokens are available for this contract
-        if (_tokenAddress != address(0) && claimPattern != 1) {
-            require
+        require
             (
-                IERC20(_tokenAddress).balanceOf(linkdropMaster) >= _tokenAmount,
-                "INSUFFICIENT_TOKENS"
+             IERC20(_token).balanceOf(address(this)) >= _amount,
+             "INSUFFICIENT_TOKENS"
             );
+                
 
-            require
-            (
-                IERC20(_tokenAddress).allowance(linkdropMaster, address(this)) >= _tokenAmount, "INSUFFICIENT_ALLOWANCE"
-            );
-        }
-
-        // Verify that link key is legit and signed by linkdrop signer
+        // Verify that link key is legit and signed by BringDrop signer
         require
         (
-            verifyLinkdropSignerSignature
+            verifyDropSignerSignature
             (
-                _tokenAddress,
-                _tokenAmount,
+                _token,
+                _amount,
                 _expiration,
                 _linkId,
-                _linkdropSignerSignature
+                _dropSignerSignature
             ),
-            "INVALID_LINKDROP_SIGNER_SIGNATURE"
+            "INVALID_DROP_SIGNER_SIGNATURE"
         );
 
         // Verify that receiver address is signed by ephemeral key assigned to claim link (link key)
@@ -128,22 +121,22 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
 
     /**
     * @dev Function to claim ETH and/or ERC20 tokens. Can only be called when contract is not paused
-    * @param _tokenAddress Token address
-    * @param _tokenAmount Amount of tokens to be claimed (in atomic value)
+    * @param _token Token address
+    * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _expiration Unix timestamp of link expiration time
     * @param _linkId Address corresponding to link key
-    * @param _linkdropSignerSignature ECDSA signature of linkdrop signer
-    * @param _receiver Address of linkdrop receiver
-    * @param _receiverSignature ECDSA signature of linkdrop receiver
+    * @param _dropSignerSignature ECDSA signature of BringDrop signer
+    * @param _receiver Address of BringDrop receiver
+    * @param _receiverSignature ECDSA signature of BringDrop receiver
     * @return True if success
     */
     function claim
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _linkdropSignerSignature,
+        bytes calldata _dropSignerSignature,
         address _receiver,
         bytes calldata _receiverSignature
     )
@@ -159,11 +152,11 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
         (
             checkClaimParams
             (
-                _tokenAddress,
-                _tokenAmount,
+                _token,
+                _amount,
                 _expiration,
                 _linkId,
-                _linkdropSignerSignature,
+                _dropSignerSignature,
                 _receiver,
                 _receiverSignature
             ),
@@ -174,10 +167,10 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
         claimedTo[_linkId] = _receiver;
 
         // Make sure transfer succeeds
-        require(_transferFunds(_tokenAddress, _tokenAmount, _receiver), "TRANSFER_FAILED");
+        require(_transferFunds(_token, _amount, _receiver), "TRANSFER_FAILED");
 
         // Emit claim event
-        emit Claimed(_linkId, _tokenAddress, _tokenAmount, _receiver);
+        emit Claimed(_linkId, _token, _amount, _receiver);
 
         return true;
     }
@@ -186,20 +179,20 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
     
     /**
     * @dev Internal function to transfer ethers and/or ERC20 tokens
-    * @param _tokenAddress Token address
-    * @param _tokenAmount Amount of tokens to be claimed (in atomic value)
+    * @param _token Token address
+    * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _receiver Address to transfer funds to
 
     * @return True if success
     */
     function _transferFunds
     (
-        address _tokenAddress,
-        uint _tokenAmount,
+        address _token,
+        uint _amount,
         address _receiver
     )
     internal returns (bool) {
-        IERC20(_tokenAddress).transferFrom(linkdropMaster, _receiver, _tokenAmount);
+        IERC20(_token).transferFrom(dropCreator, _receiver, _amount);
         return true;
     }
 }

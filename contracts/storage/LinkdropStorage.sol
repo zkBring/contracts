@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
 
-contract LinkdropStorage {
+contract BringDropStorage {
 
     // Address of contract deploying proxies
     address public factory;
 
-    // Address corresponding to linkdrop master key
-    address public linkdropMaster;
+    // Address corresponding to BringDrop master key
+    address public BringDropMaster;
 
     // Version of mastercopy contract
     uint public version;
@@ -15,8 +15,8 @@ contract LinkdropStorage {
     // Network id
     uint public chainId;
 
-    // Indicates whether an address corresponds to linkdrop signing key
-    mapping (address => bool) public isLinkdropSigner;
+    // Indicates whether an address corresponds to BringDrop signing key
+    mapping (address => bool) public isBringDropSigner;
 
     // Indicates who the link is claimed to
     mapping (address => address) public claimedTo;
@@ -40,7 +40,7 @@ contract LinkdropStorage {
     event ClaimedERC1155(address indexed linkId, address indexed nft, uint tokenId, uint tokenAmount, address receiver);    
     event Paused();
     event Unpaused();
-    event AddedSigningKey(address linkdropSigner);
-    event RemovedSigningKey(address linkdropSigner);
+    event AddedSigningKey(address BringDropSigner);
+    event RemovedSigningKey(address BringDropSigner);
 
 }

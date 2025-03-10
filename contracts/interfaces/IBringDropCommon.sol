@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
 
-interface ILinkdropCommon {
+interface IBringDropCommon {
 
     function initialize
     (
         address _owner,
-        address _linkdropMaster,
+        address _dropCreator,
         uint _version,
         uint _chainId,
         uint _claimPattern
@@ -19,9 +19,9 @@ interface ILinkdropCommon {
     function cancel(address _linkId) external returns (bool);
     function withdraw(address _token) external returns (bool);
     function pause() external returns (bool);
-    function addSigner(address _linkdropSigner) external returns (bool);
-    function removeSigner(address _linkdropSigner) external returns (bool);
-    function getLinkdropMaster() external view returns (address);
+    function addSigner(address _BringDropSigner) external returns (bool);
+    function removeSigner(address _BringDropSigner) external returns (bool);
+    function getDropCreator() external view returns (address);
     function getMasterCopyVersion() external view returns (uint);
     function verifyReceiverSignature( address _linkId,
                                       address _receiver,
