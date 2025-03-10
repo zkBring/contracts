@@ -2,11 +2,10 @@
 pragma solidity ^0.8.17;
 
 import "../interfaces/ILinkdropERC20.sol";
-import "../interfaces/ILinkdropFactoryERC20.sol";
 import "./LinkdropFactoryCommon.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-contract LinkdropFactoryERC20 is ILinkdropFactoryERC20, LinkdropFactoryCommon {
+contract LinkdropFactoryERC20 is LinkdropFactoryCommon {
 
     /**
     * @dev Function to verify claim params, make sure the link is not claimed or canceled and proxy has sufficient balance
@@ -23,19 +22,17 @@ contract LinkdropFactoryERC20 is ILinkdropFactoryERC20, LinkdropFactoryCommon {
     */
     function checkClaimParams
     (
-     uint /*_weiAmount*/,
         address _tokenAddress,
         uint _tokenAmount,
         uint _expiration,
         address _linkId,
-        address payable _linkdropMaster,
+        address _linkdropMaster,
         uint _campaignId,
         bytes memory _linkdropSignerSignature,
         address _receiver,
         bytes memory _receiverSignature
     )
     public
-    override      
     view
     returns (bool)
     {
@@ -69,19 +66,17 @@ contract LinkdropFactoryERC20 is ILinkdropFactoryERC20, LinkdropFactoryCommon {
     */
     function claim
     (
-        uint /* _weiAmount */,
         address _tokenAddress,
         uint _tokenAmount,
         uint _expiration,
         address _linkId,
-        address payable _linkdropMaster,
+        address _linkdropMaster,
         uint _campaignId,
         bytes calldata _linkdropSignerSignature,
-        address payable _receiver,
+        address _receiver,
         bytes calldata _receiverSignature
     )
     external
-    override
     returns (bool)
     {
         // Make sure proxy contract is deployed

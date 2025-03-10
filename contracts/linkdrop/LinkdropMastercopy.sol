@@ -2,8 +2,8 @@
 pragma solidity ^0.8.17;
 
 import "./LinkdropERC20.sol";
-import "./LinkdropERC1155.sol";
+//import "./LinkdropERC1155.sol";
 
-contract LinkdropMastercopy /* is LinkdropERC20, LinkdropERC1155 */ {
+contract LinkdropMastercopy is LinkdropERC20 /* LinkdropERC1155 */ {
 
 }

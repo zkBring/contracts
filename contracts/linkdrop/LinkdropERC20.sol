@@ -144,7 +144,7 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
         uint _expiration,
         address _linkId,
         bytes calldata _linkdropSignerSignature,
-        address payable _receiver,
+        address _receiver,
         bytes calldata _receiverSignature
     )
     external
@@ -196,7 +196,7 @@ contract LinkdropERC20 is ILinkdropERC20, LinkdropCommon {
     (
         address _tokenAddress,
         uint _tokenAmount,
-        address payable _receiver
+        address _receiver
     )
     internal returns (bool) {
         IERC20(_tokenAddress).transferFrom(linkdropMaster, _receiver, _tokenAmount);

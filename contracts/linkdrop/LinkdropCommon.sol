@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 import "../interfaces/ILinkdropCommon.sol";
 import "../storage/LinkdropStorage.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
-import "../interfaces/ILinkdropFactory.sol";
 import "../libs/TransferHelper.sol";
 
 contract LinkdropCommon is ILinkdropCommon, LinkdropStorage {
@@ -31,7 +30,7 @@ contract LinkdropCommon is ILinkdropCommon, LinkdropStorage {
     {
         require(!initialized, "LINKDROP_PROXY_CONTRACT_ALREADY_INITIALIZED");
         require(_claimPattern == 0 || _claimPattern == 1, "UNKNOWN_TRANSFER_PATTERN");        
-        factory = ILinkdropFactory(_factory);
+        factory = _factory;
         linkdropMaster = _linkdropMaster;
         isLinkdropSigner[linkdropMaster] = true;
         version = _version;

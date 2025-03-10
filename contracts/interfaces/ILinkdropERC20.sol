@@ -32,7 +32,7 @@ interface ILinkdropERC20 {
         uint _expiration,
         address _linkId,
         bytes calldata _linkdropSignerSignature,
-        address payable _receiver,
+        address _receiver,
         bytes calldata _receiverSignature
     )
       external payable returns (bool);

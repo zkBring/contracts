@@ -1,11 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.17;
-
-import "../storage/LinkdropFactoryStorage.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "../interfaces/ILinkdropCommon.sol";
-import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 
-contract LinkdropFactoryCommon is LinkdropFactoryStorage {
+contract LinkdropFactoryCommon is Ownable {
+
+    // Current version of mastercopy contract
+    uint public masterCopyVersion;
+    
+    // Contract bytecode to be installed when deploying proxy
+    bytes internal _bytecode;
+
+    // Bootstrap initcode to fetch the actual contract bytecode. Used to generate repeatable contract addresses
+    bytes internal _initcode;
+
+    // Network id
+    uint public chainId;
+
+    // Maps hash(sender address, campaign id) to its corresponding proxy address
+    mapping (bytes32 => address) public deployed;
+        
+    // Events
+    event Deployed(address indexed owner, uint campaignId, address proxy, bytes32 salt);
+    event SetMasterCopy(address masterCopy, uint version);
+
+    
     /**
     * @dev Indicates whether a proxy contract for linkdrop master is deployed or not
     * @param _linkdropMaster Address of linkdrop master
@@ -64,15 +83,15 @@ contract LinkdropFactoryCommon is LinkdropFactoryStorage {
         require(!isDeployed(_linkdropMaster, _campaignId), "LINKDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
         require(_linkdropMaster != address(0), "INVALID_LINKDROP_MASTER_ADDRESS");
 
-        bytes32 salt = salt(_linkdropMaster, _campaignId);
+        bytes32 _salt = salt(_linkdropMaster, _campaignId);
         bytes memory initcode = getInitcode();
 
         assembly {
-            proxy := create2(0, add(initcode, 0x20), mload(initcode), salt)
+            proxy := create2(0, add(initcode, 0x20), mload(initcode), _salt)
             if iszero(extcodesize(proxy)) { revert(0, 0) }
         }
 
-        deployed[salt] = proxy;
+        deployed[_salt] = proxy;
 
         // Initialize factory address, linkdrop master address master copy version in proxy contract
         require
@@ -88,8 +107,7 @@ contract LinkdropFactoryCommon is LinkdropFactoryStorage {
             "INITIALIZATION_FAILED"
         );
 
-
-        emit Deployed(_linkdropMaster, _campaignId, proxy, salt);
+        emit Deployed(_linkdropMaster, _campaignId, proxy, _salt);
         return proxy;
     }
 
