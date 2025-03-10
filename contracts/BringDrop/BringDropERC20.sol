@@ -16,7 +16,7 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
     * @param _signature ECDSA signature of BringDrop signer
     * @return True if signed with BringDrop signer's private key
     */
-    function verifyDropSignerSignature
+    function verifySignerSignature
     (
         address _token,
         uint _amount,
@@ -39,14 +39,14 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
                  _amount,
                  _expiration,
                  version,
-                 chainId,
+                 block.chainid,
                  _linkId,
                  address(this)
                 )
             )
         );
-        address signer = ECDSA.recover(prefixedHash, _signature);
-        return isDropSigner[signer];
+        address recovered = ECDSA.recover(prefixedHash, _signature);
+        return recovered == signer;
     }
 
     /**
@@ -55,9 +55,9 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
     * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _expiration Unix timestamp of link expiration time
     * @param _linkId Address corresponding to link key
-    * @param _dropSignerSignature ECDSA signature of BringDrop signer
+    * @param _signerSignature ECDSA signature of Drop signer
     * @param _receiver Address of BringDrop receiver
-    * @param _receiverSignature ECDSA signature of BringDrop receiver,
+    * @param _receiverSignature ECDSA signature of drop receiver,
     * @return True if success
     */
     function checkClaimParams
@@ -66,23 +66,20 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
         uint _amount,
         uint _expiration,
         address _linkId,
-        bytes memory _dropSignerSignature,
+        bytes memory _signerSignature,
         address _receiver,
         bytes memory _receiverSignature
      )
     public view
-    override       
-    whenNotPaused
+    override
+        notStopped
     returns (bool)
     {
         // If tokens are being claimed
         require(_token != address(0), "INVALID_TOKEN_ADDRESS");
 
         // Make sure link is not claimed
-        require(isClaimedLink(_linkId) == false, "LINK_CLAIMED");
-
-        // Make sure link is not canceled
-        require(isCanceledLink(_linkId) == false, "LINK_CANCELED");
+        require(isClaimed(_linkId) == false, "LINK_CLAIMED");
 
         // Make sure link is not expired
         require(_expiration >= block.timestamp, "LINK_EXPIRED");
@@ -98,15 +95,15 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
         // Verify that link key is legit and signed by BringDrop signer
         require
         (
-            verifyDropSignerSignature
+            verifySignerSignature
             (
                 _token,
                 _amount,
                 _expiration,
                 _linkId,
-                _dropSignerSignature
+                _signerSignature
             ),
-            "INVALID_DROP_SIGNER_SIGNATURE"
+            "BRING_INVALID_SIGNER_SIGNATURE"
         );
 
         // Verify that receiver address is signed by ephemeral key assigned to claim link (link key)
@@ -125,7 +122,7 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
     * @param _amount Amount of tokens to be claimed (in atomic value)
     * @param _expiration Unix timestamp of link expiration time
     * @param _linkId Address corresponding to link key
-    * @param _dropSignerSignature ECDSA signature of BringDrop signer
+    * @param _signerSignature ECDSA signature of Drop signer
     * @param _receiver Address of BringDrop receiver
     * @param _receiverSignature ECDSA signature of BringDrop receiver
     * @return True if success
@@ -136,14 +133,13 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
         uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _dropSignerSignature,
+        bytes calldata _signerSignature,
         address _receiver,
         bytes calldata _receiverSignature
     )
-    external
+    external        
     override
-    payable
-    whenNotPaused
+    notStopped
     returns (bool)
     {
 
@@ -156,7 +152,7 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
                 _amount,
                 _expiration,
                 _linkId,
-                _dropSignerSignature,
+                _signerSignature,
                 _receiver,
                 _receiverSignature
             ),
@@ -192,7 +188,7 @@ contract BringDropERC20 is IBringDropERC20, BringDropCommon {
         address _receiver
     )
     internal returns (bool) {
-        IERC20(_token).transferFrom(dropCreator, _receiver, _amount);
+        IERC20(_token).transferFrom(creator, _receiver, _amount);
         return true;
     }
 }

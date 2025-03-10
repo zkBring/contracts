@@ -21,67 +21,65 @@ contract BringFactoryCommon is Ownable {
     mapping (bytes32 => address) public deployed;
         
     // Events
-    event Deployed(address indexed owner, uint campaignId, address proxy, bytes32 salt);
+    event Deployed(address indexed creator, address signer, address drop, bytes32 salt);
     event SetMasterCopy(address masterCopy, uint version);
 
     
     /**
     * @dev Indicates whether a proxy contract for BringDrop master is deployed or not
-    * @param _dropCreator Address of BringDrop master
-    * @param _campaignId Campaign id
+    * @param _creator Address of Drop creator
+    * @param _signer signer address
     * @return True if deployed
     */
-    function isDeployed(address _dropCreator, uint _campaignId) public view returns (bool) {
-        return (deployed[salt(_dropCreator, _campaignId)] != address(0));
+    function isDeployed(address _creator, address _signer) public view returns (bool) {
+        return (deployed[salt(_creator, _signer)] != address(0));
     }
 
     /**
     * @dev Indicates whether a link is claimed or not
-    * @param _dropCreator Account that created drop
-    * @param _campaignId Campaign id
+    * @param _creator Account that created drop
+    * @param _signer signer address
     * @param _linkId Address corresponding to link key
     * @return True if claimed
     */
-    function isClaimedLink(address _dropCreator, uint _campaignId, address _linkId) public view returns (bool) {
+    function isClaimed(address _creator, address _signer, address _linkId) public view returns (bool) {
 
-        if (!isDeployed(_dropCreator, _campaignId)) {
+        if (!isDeployed(_creator, _signer)) {
             return false;
         }
         else {
-            address proxy = address(uint160(deployed[salt(_dropCreator, _campaignId)]));
-            return IBringDropCommon(proxy).isClaimedLink(_linkId);
+            address proxy = address(uint160(deployed[salt(_creator, _signer)]));
+            return IBringDropCommon(proxy).isClaimed(_linkId);
         }
     }
 
     /**
     * @dev Function to deploy a proxy contract for msg.sender and add a new signing key
-    * @param _campaignId Campaign id
     * @param _signer Address corresponding to signing key
     * @return proxy Proxy contract address
     */
-    function createDrop(uint _campaignId, address _signer)
+    function createDrop(address _signer)
     public
     returns (address proxy)
     {
-        proxy = _deployProxy(msg.sender, _campaignId);
-        IBringDropCommon(proxy).addSigner(_signer);
+        proxy = _deployProxy(msg.sender, _signer);
     }
 
     /**
     * @dev Internal function to deploy a proxy contract for BringDrop master
-    * @param _dropCreator Address of drop creator
-    * @param _campaignId Campaign id
+    * @param _creator Address of drop creator
+    * @param _signer Signer address
     * @return proxy Proxy contract address
     */
-    function _deployProxy(address _dropCreator, uint _campaignId)
+    function _deployProxy(address _creator, address _signer)
     internal
     returns (address proxy)
     {
 
-        require(!isDeployed(_dropCreator, _campaignId), "BRINGDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
-        require(_dropCreator != address(0), "INVALID_BRINGDROP_MASTER_ADDRESS");
+        require(!isDeployed(_creator, _signer), "BRINGDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
+        require(_creator != address(0), "INVALID_BRINGDROP_MASTER_ADDRESS");
 
-        bytes32 _salt = salt(_dropCreator, _campaignId);
+        bytes32 _salt = salt(_creator, _signer);
         bytes memory initcode = getInitcode();
 
         assembly {
@@ -96,13 +94,14 @@ contract BringFactoryCommon is Ownable {
         (
             IBringDropCommon(proxy).initialize
             (
-                _dropCreator, // BringDrop master address
+                _creator,
+                _signer,
                 dropContractVersion
             ),
             "INITIALIZATION_FAILED"
         );
 
-        emit Deployed(_dropCreator, _campaignId, proxy, _salt);
+        emit Deployed(_creator, _signer, proxy, _salt);
         return proxy;
     }
 
@@ -145,7 +144,8 @@ contract BringFactoryCommon is Ownable {
         (
             IBringDropCommon(_masterCopy).initialize
             (
-                address(0), // BringDrop master address
+                address(0), // creator
+                address(0), // signer
                 dropContractVersion
             ),
             "INITIALIZATION_FAILED"
@@ -165,29 +165,12 @@ contract BringFactoryCommon is Ownable {
     }
 
     /**
-    * @dev Function to fetch the master copy version installed (or to be installed) to proxy
-    * @param _dropCreator Address of BringDrop master
-    * @param _campaignId Campaign id
-    * @return Master copy version
-    */
-    function getProxyMasterCopyVersion(address _dropCreator, uint _campaignId) external view returns (uint) {
-
-        if (!isDeployed(_dropCreator, _campaignId)) {
-            return dropContractVersion;
-        }
-        else {
-            address proxy = address(uint160(deployed[salt(_dropCreator, _campaignId)]));
-            return IBringDropCommon(proxy).getMasterCopyVersion();
-        }
-    }
-
-    /**
-     * @dev Function to hash `_dropCreator` and `_campaignId` params. Used as salt when deploying with create2
-     * @param _dropCreator Address of BringDrop master
-     * @param _campaignId Campaign id
+     * @dev Function to hash `_creator` and `_signer` params. Used as salt when deploying with create2
+     * @param _creator Drop Creator address
+     * @param _signer Drop signer address
      * @return Hash of passed arguments
      */
-    function salt(address _dropCreator, uint _campaignId) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_dropCreator, _campaignId));
+    function salt(address _creator, address _signer) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_creator, _signer));
     }
   }

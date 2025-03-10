@@ -20,13 +20,13 @@ const computeBytecode = masterCopyAddress => {
 
 const computeProxyAddress = (
   factoryAddress,
-  linkdropMasterAddress,
-  campaignId,
+  creator,
+  signer,
   initcode
 ) => {
   const salt = solidityPackedKeccak256(
-    ['address', 'uint256'],
-    [linkdropMasterAddress, campaignId]
+    ['address', 'address'],
+    [creator, signer]
   );
   const proxyAddress = buildCreate2Address(factoryAddress, salt, initcode);
   return proxyAddress;

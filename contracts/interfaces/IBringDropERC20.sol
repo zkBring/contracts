@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 interface IBringDropERC20 {
 
-    function verifyDropSignerSignature
+    function verifySignerSignature
     (
         address _token,
         uint _amount,
@@ -19,9 +19,9 @@ interface IBringDropERC20 {
         uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _dropSignerSignature,
+        bytes calldata _signerSig,
         address _receiver,
-        bytes calldata _receiverSignature
+        bytes calldata _receiverSig
     )
     external view returns (bool);
 
@@ -31,9 +31,9 @@ interface IBringDropERC20 {
         uint _amount,
         uint _expiration,
         address _linkId,
-        bytes calldata _dropSignerSignature,
+        bytes calldata _signerSig,
         address _receiver,
-        bytes calldata _receiverSignature
+        bytes calldata _receiverSig
     )
-      external payable returns (bool);
+      external returns (bool);
 }

@@ -15,7 +15,7 @@ const MINT_ON_CLAIM_PATTERN = 1
 
 describe('Proxy upgradability tests', () => {
   async function deployMasterCopyFixture() {
-    let [dropCreator, deployer, relayer, dropSigner] = await ethers.getSigners()
+    let [creator, deployer, relayer, dropSigner] = await ethers.getSigners()
     const MasterCopy = await ethers.getContractFactory("BringDrop");
     const masterCopy = await MasterCopy.deploy();
     await masterCopy.waitForDeployment();
@@ -23,7 +23,7 @@ describe('Proxy upgradability tests', () => {
   }
   
   async function deployFactoryFixture() {
-    let [dropCreator, deployer, relayer, dropSigner] = await ethers.getSigners()
+    let [creator, deployer, relayer, dropSigner] = await ethers.getSigners()
     const MasterCopy = await ethers.getContractFactory("BringDrop");
     const masterCopy = await MasterCopy.deploy();
     await masterCopy.waitForDeployment();
@@ -31,24 +31,19 @@ describe('Proxy upgradability tests', () => {
     const Factory = await ethers.getContractFactory("BringFactory");
     const factory = await Factory.deploy(masterCopy.target);
     await factory.waitForDeployment()
-    return { factory, masterCopy, dropCreator, dropSigner };
+    return { factory, masterCopy, creator, dropSigner };
   }
   
   it('should deploy initial master copy of linkdrop implementation', async () => {
     const { masterCopy } = await loadFixture(deployMasterCopyFixture);
     expect(masterCopy.target).to.not.eq(ethers.ZeroAddress)
 
-    let masterCopyOwner = await masterCopy.factory()
-    expect(masterCopyOwner).to.eq(ethers.ZeroAddress)
-
-    let masterCopyLinkdropMaster = await masterCopy.dropCreator()
+    let masterCopyLinkdropMaster = await masterCopy.creator()
     expect(masterCopyLinkdropMaster).to.eq(ethers.ZeroAddress)
 
     let masterCopyVersion = await masterCopy.version()
     expect(masterCopyVersion).to.eq(0)
 
-    let masterCopyChainId = await masterCopy.chainId()
-    expect(masterCopyChainId).to.eq(0)
   })
 
   it('should deploy factory', async () => {
@@ -58,34 +53,26 @@ describe('Proxy upgradability tests', () => {
     let factoryVersion = await factory.dropContractVersion()
     expect(factoryVersion).to.eq(1)
 
-    let factoryChainId = await factory.chainId()
-    expect(factoryChainId).to.not.eq(0)
-
-    let masterCopyOwner = await masterCopy.factory()
-    expect(masterCopyOwner).to.eq(factory.target)
-
-    let masterCopyLinkdropMaster = await masterCopy.dropCreator()
-    expect(masterCopyLinkdropMaster).to.eq(ethers.ZeroAddress)
+    let masterCopyCreator = await masterCopy.creator()
+    expect(masterCopyCreator).to.eq(ethers.ZeroAddress)
 
     let masterCopyVersion = await masterCopy.version()
     expect(masterCopyVersion).to.eq(factoryVersion)
 
-    let masterCopyChainId = await masterCopy.chainId()
-    expect(masterCopyChainId).to.eq(factoryChainId)
   })
 
   it('should deploy proxy and delegate to implementation', async () => {
-    const { factory, masterCopy, dropCreator, dropSigner } = await loadFixture(deployFactoryFixture);
+    const { factory, masterCopy, creator, dropSigner } = await loadFixture(deployFactoryFixture);
     // Compute next address with js function
     let expectedAddress = computeProxyAddress(
       factory.target,
-      dropCreator.address,
-      campaignId,
+      creator.address,
+      dropSigner.address,
       initcode
     )
 
     await expect(
-      factory.createDrop(campaignId, dropSigner.address, {
+      factory.createDrop(dropSigner.address, {
         gasLimit: 6000000
       })
     ).to.emit(factory, 'Deployed')
@@ -93,28 +80,26 @@ describe('Proxy upgradability tests', () => {
     proxy = new ethers.Contract(
       expectedAddress,
       masterCopy.interface.format('json'),
-      dropCreator
+      creator
     )
 
-    let dropCreatorAddress = await proxy.dropCreator()
-    expect(dropCreatorAddress).to.eq(dropCreator.address)
+    let creatorAddress = await proxy.creator()
+    expect(creatorAddress).to.eq(creator.address)
 
     let version = await proxy.version()
     expect(version).to.eq(1)
 
-    let owner = await proxy.factory()
-    expect(owner).to.eq(factory.target)
   })
 
   async function deployCombinedFixture() {
     // Deploy factory and its initial master copy
-    let { factory, masterCopy, dropCreator, dropSigner } = await deployFactoryFixture();
+    let { factory, masterCopy, creator, dropSigner } = await deployFactoryFixture();
     // Deploy a new master copy
     let { masterCopy: newMS } = await deployMasterCopyFixture();
     // Update the factory with the new master copy
     const tx = await factory.setMasterCopy(newMS.target);
     await tx.wait();
-    return { factory, newMS, dropCreator, dropSigner };
+    return { factory, newMS, creator, dropSigner };
   }
 
   
