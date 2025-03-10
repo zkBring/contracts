@@ -5,15 +5,13 @@ const {
   time,
   loadFixture,
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
-//const { computeBytecode, computeProxyAddress } = require('./utils')
+const { computeBytecode, computeProxyAddress } = require('./utils')
 let bytecode
 
 const initcode = '0x6352c7420d6000526103ff60206004601c335afa6040516060f3'
-const chainId = 4 // Rinkeby
 const campaignId = 0
 const DEFAULT_TRANSFER_PATTERN = 0
 const MINT_ON_CLAIM_PATTERN = 1
-
 
 describe('Proxy upgradability tests', () => {
   async function deployMasterCopyFixture() {
@@ -31,11 +29,11 @@ describe('Proxy upgradability tests', () => {
     await masterCopy.waitForDeployment();
     
     const Factory = await ethers.getContractFactory("LinkdropFactory");
-    const factory = await Factory.deploy(masterCopy.target, chainId);
+    const factory = await Factory.deploy(masterCopy.target);
     await factory.waitForDeployment()
-    return { factory, masterCopy };
+    return { factory, masterCopy, linkdropMaster, linkdropSigner };
   }
- 
+  
   it('should deploy initial master copy of linkdrop implementation', async () => {
     const { masterCopy } = await loadFixture(deployMasterCopyFixture);
     expect(masterCopy.target).to.not.eq(ethers.ZeroAddress)
@@ -61,7 +59,7 @@ describe('Proxy upgradability tests', () => {
     expect(factoryVersion).to.eq(1)
 
     let factoryChainId = await factory.chainId()
-    expect(factoryChainId).to.eq(chainId)
+    expect(factoryChainId).to.not.eq(0)
 
     let masterCopyOwner = await masterCopy.factory()
     expect(masterCopyOwner).to.eq(ethers.ZeroAddress)
@@ -76,56 +74,63 @@ describe('Proxy upgradability tests', () => {
     expect(masterCopyChainId).to.eq(factoryChainId)
   })
 
-  // xit('should deploy proxy and delegate to implementation', async () => {
-  //   // Compute next address with js function
-  //   let expectedAddress = computeProxyAddress(
-  //     factory.address,
-  //     linkdropMaster.address,
-  //     campaignId,
-  //     initcode
-  //   )
+  it('should deploy proxy and delegate to implementation', async () => {
+    const { factory, masterCopy, linkdropMaster, linkdropSigner } = await loadFixture(deployFactoryFixture);
+    // Compute next address with js function
+    let expectedAddress = computeProxyAddress(
+      factory.target,
+      linkdropMaster.address,
+      campaignId,
+      initcode
+    )
 
-  //   factory = factory.connect(linkdropMaster)
+    await expect(
+      factory.deployProxyWithSigner(campaignId, linkdropSigner.address, DEFAULT_TRANSFER_PATTERN, {
+        gasLimit: 6000000
+      })
+    ).to.emit(factory, 'Deployed')
 
-  //   await expect(
-  //     factory.deployProxyWithSigner(campaignId, linkdropSigner.address, DEFAULT_TRANSFER_PATTERN, {
-  //       gasLimit: 6000000
-  //     })
-  //   ).to.emit(factory, 'Deployed')
+    proxy = new ethers.Contract(
+      expectedAddress,
+      masterCopy.interface.format('json'),
+      linkdropMaster
+    )
 
-  //   proxy = new ethers.Contract(
-  //     expectedAddress,
-  //     LinkdropMastercopy.abi,
-  //     deployer
-  //   )
+    let linkdropMasterAddress = await proxy.linkdropMaster()
+    expect(linkdropMasterAddress).to.eq(linkdropMaster.address)
 
-  //   let linkdropMasterAddress = await proxy.linkdropMaster()
-  //   expect(linkdropMasterAddress).to.eq(linkdropMaster.address)
+    let version = await proxy.version()
+    expect(version).to.eq(1)
 
-  //   let version = await proxy.version()
-  //   expect(version).to.eq(1)
+    let owner = await proxy.factory()
+    expect(owner).to.eq(factory.target)
+  })
 
-  //   let owner = await proxy.factory()
-  //   expect(owner).to.eq(factory.address)
+  // it('should deploy second version of mastercopy', async () => {
+  //   let { factory, masterCopy, linkdropMaster, linkdropSigner } = await loadFixture(deployFactoryFixture);
+  //   let oldMasterCopyAddress = masterCopy.target
+
+  //   await loadFixture(deployFactoryFixture);    
+  //   expect(masterCopy.target).to.not.eq(ethers.ZeroAddress)
+  //   expect(masterCopy.target).to.not.eq(oldMasterCopyAddress)
   // })
 
-  // xit('should deploy second version of mastercopy', async () => {
-  //   let oldMasterCopyAddress = masterCopy.address
-  //   masterCopy = await deployContract(deployer, LinkdropMastercopy, [], {
-  //     gasLimit: 6000000
-  //   })
+  async function deployCombinedFixture() {
+    // Deploy factory and its initial master copy
+    let { factory, masterCopy, linkdropMaster, linkdropSigner } = await deployFactoryFixture();
+    // Deploy a new master copy
+    let { masterCopy: newMS } = await deployMasterCopyFixture();
+    // Update the factory with the new master copy
+    const tx = await factory.setMasterCopy(newMS.target);
+    await tx.wait();
+    return { factory, newMS, linkdropMaster, linkdropSigner };
+  }
 
-  //   expect(masterCopy.address).to.not.eq(ethers.constants.ZeroAddress)
-  //   expect(masterCopy.address).to.not.eq(oldMasterCopyAddress)
-  // })
-
-  // xit('should set mastercopy and update bytecode in factory', async () => {
-  //   bytecode = computeBytecode(masterCopy.address)
-  //   factory = factory.connect(deployer)
-  //   await factory.setMasterCopy(masterCopy.address)
-  //   let deployedBytecode = await factory.getBytecode()
-  //   expect(deployedBytecode.toString().toLowerCase()).to.eq(
-  //     bytecode.toString().toLowerCase()
-  //   )
-  // })
+  
+  it('should set mastercopy and update bytecode in factory', async () => {
+    let { factory, newMS } = await loadFixture(deployCombinedFixture);
+    const expectedBytecode = computeBytecode(newMS.target);
+    const deployedBytecode = await factory.getBytecode();
+    expect(deployedBytecode.toString().toLowerCase()).to.eq(expectedBytecode.toString().toLowerCase());
+  })
 })

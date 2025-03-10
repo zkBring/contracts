@@ -1,110 +1,110 @@
-import { utils } from 'ethers'
-const ethers = require('ethers')
+const ethers = require('ethers');
+const { solidityPackedKeccak256, keccak256 } = ethers;
 
 function buildCreate2Address(creatorAddress, saltHex, byteCode) {
-  const byteCodeHash = utils.keccak256(byteCode)
-  return `0x${utils
-    .keccak256(
+  const byteCodeHash = keccak256(byteCode);
+  return `0x${keccak256(
       `0x${['ff', creatorAddress, saltHex, byteCodeHash]
-        .map(x => x.replace(/0x/, ''))
+        .map(x => x.replace(/^0x/, ''))
         .join('')}`
     )
-    .slice(-40)}`.toLowerCase()
+    .slice(-40)}`.toLowerCase();
 }
 
-export const computeBytecode = masterCopyAddress => {
+const computeBytecode = masterCopyAddress => {
   const bytecode = `0x363d3d373d3d3d363d73${masterCopyAddress.slice(
     2
-  )}5af43d82803e903d91602b57fd5bf3`
-  return bytecode
-}
+  )}5af43d82803e903d91602b57fd5bf3`;
+  return bytecode;
+};
 
-// const initcode = '0x6352c7420d6000526103ff60206004601c335afa6040516060f3'
-
-export const computeProxyAddress = (
+const computeProxyAddress = (
   factoryAddress,
   linkdropMasterAddress,
   campaignId,
   initcode
 ) => {
-  const salt = utils.solidityKeccak256(
+  const salt = solidityPackedKeccak256(
     ['address', 'uint256'],
     [linkdropMasterAddress, campaignId]
-  )
-  // const bytecode = computePendingRuntimeCode(masterCopyAddress)
-  const proxyAddress = buildCreate2Address(factoryAddress, salt, initcode)
-  return proxyAddress
-}
+  );
+  const proxyAddress = buildCreate2Address(factoryAddress, salt, initcode);
+  return proxyAddress;
+};
 
-// Should be signed by linkdrop master (sender)
-export const signLink = async (
-  linkdropSigner, // Wallet
-  ethAmount,
-  tokenAddress,
-  tokenAmount,
-  expirationTime,
-  version,
-  chainId,
-  linkId,
-  proxyAddress
-) => {
-  let messageHash = ethers.utils.solidityKeccak256(
-    ['uint', 'address', 'uint', 'uint', 'uint', 'uint', 'address', 'address'],
-    [
-      ethAmount,
-      tokenAddress,
-      tokenAmount,
-      expirationTime,
-      version,
-      chainId,
-      linkId,
-      proxyAddress
-    ]
-  )
-  let messageHashToSign = ethers.utils.arrayify(messageHash)
-  let signature = await linkdropSigner.signMessage(messageHashToSign)
-  return signature
-}
+// const signLink = async (
+//   linkdropSigner, // Wallet instance
+//   ethAmount,
+//   tokenAddress,
+//   tokenAmount,
+//   expirationTime,
+//   version,
+//   chainId,
+//   linkId,
+//   proxyAddress
+// ) => {
+//   const messageHash = utils.solidityKeccak256(
+//     ['uint256', 'address', 'uint256', 'uint256', 'uint256', 'uint256', 'address', 'address'],
+//     [
+//       ethAmount,
+//       tokenAddress,
+//       tokenAmount,
+//       expirationTime,
+//       version,
+//       chainId,
+//       linkId,
+//       proxyAddress
+//     ]
+//   );
+//   const messageHashToSign = utils.arrayify(messageHash);
+//   const signature = await linkdropSigner.signMessage(messageHashToSign);
+//   return signature;
+// };
 
-// Generates new link
-export const createLink = async (
-  linkdropSigner, // Wallet
-  ethAmount,
-  tokenAddress,
-  tokenAmount,
-  expirationTime,
-  version,
-  chainId,
-  proxyAddress
-) => {
-  let linkWallet = ethers.Wallet.createRandom()
-  let linkKey = linkWallet.privateKey
-  let linkId = linkWallet.address
-  let linkdropSignerSignature = await signLink(
-    linkdropSigner,
-    ethAmount,
-    tokenAddress,
-    tokenAmount,
-    expirationTime,
-    version,
-    chainId,
-    linkId,
-    proxyAddress
-  )
-  return {
-    linkKey, // link's ephemeral private key
-    linkId, // address corresponding to link key
-    linkdropSignerSignature // signed by linkdrop verifier
-  }
-}
+// const createLink = async (
+//   linkdropSigner, // Wallet instance
+//   ethAmount,
+//   tokenAddress,
+//   tokenAmount,
+//   expirationTime,
+//   version,
+//   chainId,
+//   proxyAddress
+// ) => {
+//   const linkWallet = ethers.Wallet.createRandom();
+//   const linkKey = linkWallet.privateKey;
+//   const linkId = linkWallet.address;
+//   const linkdropSignerSignature = await signLink(
+//     linkdropSigner,
+//     ethAmount,
+//     tokenAddress,
+//     tokenAmount,
+//     expirationTime,
+//     version,
+//     chainId,
+//     linkId,
+//     proxyAddress
+//   );
+//   return {
+//     linkKey, // link's ephemeral private key
+//     linkId, // address corresponding to the link key
+//     linkdropSignerSignature // signature by linkdrop signer
+//   };
+// };
 
-export const signReceiverAddress = async (linkKey, receiverAddress) => {
-  let wallet = new ethers.Wallet(linkKey)
-  let messageHash = ethers.utils.solidityKeccak256(
-    ['address'],
-    [receiverAddress]
-  )
-  let messageHashToSign = ethers.utils.arrayify(messageHash)
-  let signature = await wallet.signMessage(messageHashToSign)
-  return signature
-}
+// const signReceiverAddress = async (linkKey, receiverAddress) => {
+//   const wallet = new ethers.Wallet(linkKey);
+//   const messageHash = utils.solidityKeccak256(['address'], [receiverAddress]);
+//   const messageHashToSign = utils.arrayify(messageHash);
+//   const signature = await wallet.signMessage(messageHashToSign);
+//   return signature;
+// };
+
+module.exports = {
+  buildCreate2Address,
+  computeBytecode,
+  computeProxyAddress,
+  // signLink,
+  // createLink,
+  // signReceiverAddress
+};
