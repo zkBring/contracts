@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.10;
+
+import "./DropERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract DropFactory is Ownable {
+    // Fee 0.01 percentage (e.g., 5 means 0.05%)
+    uint256 public fee;
+    address public feeRecipient;
+
+    event DropCreated(
+        address indexed creator,
+        address indexed drop,
+        address indexed token,
+        uint256 amount,
+        uint256 claims,
+        bytes32 zkPassTaskId,
+        bytes32 zkPassSchemaId
+    );
+    event FeeUpdated(uint256 newFee);
+    event FeeRecipientUpdated(address newFeeRecipient);
+
+    constructor(uint256 _fee, address _feeRecipient) {
+        fee = _fee;
+        feeRecipient = _feeRecipient;
+    }
+
+    function updateFee(uint256 _fee) external onlyOwner {
+        fee = _fee;
+        emit FeeUpdated(_fee);
+    }
+
+    function updateFeeRecipient(address _feeRecipient) external onlyOwner {
+        feeRecipient = _feeRecipient;
+        emit FeeRecipientUpdated(_feeRecipient);
+    }
+
+    /**
+     * @notice Create a new ERC20 drop.
+     * @param token The ERC20 token address.
+     * @param amount The amount of tokens per claim.
+     * @param claims The total number of claims allowed.
+     * @param zkPassTaskId The zkPass task identifier.
+     * @param zkPassSchemaId The zkPass schema identifier.
+     * @return dropAddress The address of the newly created drop.
+     */
+    function createDrop(
+        address token,
+        uint256 amount,
+        uint256 claims,
+        bytes32 zkPassTaskId,
+        bytes32 zkPassSchemaId
+    ) external returns (address dropAddress) {
+        uint256 totalDistribution = amount * claims;
+        uint256 feeAmount = (totalDistribution * fee) / 10000;
+        uint256 requiredTotal = totalDistribution + feeAmount;
+
+        // Transfer required tokens from msg.sender to the factory.
+        require(
+            IERC20(token).transferFrom(msg.sender, address(this), requiredTotal),
+            "Token transfer to factory failed"
+        );
+
+        // Deploy the drop contract.
+        DropERC20 drop = new DropERC20(
+            msg.sender,
+            token,
+            amount,
+            claims,
+            zkPassTaskId,
+            zkPassSchemaId
+        );
+        dropAddress = address(drop);
+
+        // Transfer fee tokens to feeRecipient.
+        require(
+            IERC20(token).transfer(feeRecipient, feeAmount),
+            "Fee transfer failed"
+        );
+
+        // Transfer distribution tokens to the created drop contract.
+        require(
+            IERC20(token).transfer(dropAddress, totalDistribution),
+            "Token transfer to drop failed"
+        );
+
+        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassTaskId, zkPassSchemaId);
+    }
+}
