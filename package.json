@@ -21,7 +21,9 @@
     "typechain": "^8.3.0"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@reclaimprotocol/verifier-solidity-sdk": "^1.0.4",
+    "dotenv": "^16.4.7",
     "openzeppelin-solidity": "4.8.1"
   }
 }
