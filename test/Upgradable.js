@@ -29,7 +29,7 @@ describe('Proxy upgradability tests', () => {
     await masterCopy.waitForDeployment();
     
     const Factory = await ethers.getContractFactory("BringFactory");
-    const factory = await Factory.deploy(masterCopy.target);
+    const factory = await Factory.deploy(masterCopy.target, 0);
     await factory.waitForDeployment()
     return { factory, masterCopy, creator, dropSigner };
   }
@@ -71,8 +71,12 @@ describe('Proxy upgradability tests', () => {
       initcode
     )
 
+    const claims = 1
+    const amount = 1
+    const token = factory.target
+    
     await expect(
-      factory.createDrop(dropSigner.address, {
+      factory.createDrop(dropSigner.address, token, amount, claims, {
         gasLimit: 6000000
       })
     ).to.emit(factory, 'Deployed')

@@ -13,9 +13,8 @@ contract BringFactory is BringFactoryERC20
    * @dev Constructor that sets bootstap initcode, factory owner, chainId and master copy
    * @param _mastercopy BringDrop mastercopy contract address to proxy calls to
    */
-    constructor(address _mastercopy) {
-        _initcode = (hex"6352c7420d6000526103ff60206004601c335afa6040516060f3");
-        chainId = block.chainid;
+    constructor(address _mastercopy, uint _fee) {
+        setFee(_fee);
         setMasterCopy(_mastercopy);
     }
   

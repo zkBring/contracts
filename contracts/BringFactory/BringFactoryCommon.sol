@@ -11,19 +11,17 @@ contract BringFactoryCommon is Ownable {
     // Contract bytecode to be installed when deploying proxy
     bytes internal _bytecode;
 
-    // Bootstrap initcode to fetch the actual contract bytecode. Used to generate repeatable contract addresses
-    bytes internal _initcode;
-
-    // Network id
-    uint public chainId;
-
+    uint public fee; 
+    address public feeRecipient;
+    
     // Maps hash(sender address, campaign id) to its corresponding proxy address
     mapping (bytes32 => address) public deployed;
         
     // Events
     event Deployed(address indexed creator, address signer, address drop, bytes32 salt);
     event SetMasterCopy(address masterCopy, uint version);
-
+    event SetFee(uint fee);    
+    event SetFeeRecipient(address feeRecipient);
     
     /**
     * @dev Indicates whether a proxy contract for BringDrop master is deployed or not
@@ -53,15 +51,17 @@ contract BringFactoryCommon is Ownable {
         }
     }
 
+    
     /**
     * @dev Function to deploy a proxy contract for msg.sender and add a new signing key
     * @param _signer Address corresponding to signing key
     * @return proxy Proxy contract address
     */
-    function createDrop(address _signer)
+    function createDrop(address _signer, address _token, uint _amount, uint _claims)
     public
     returns (address proxy)
     {
+        
         proxy = _deployProxy(msg.sender, _signer);
     }
 
@@ -76,11 +76,14 @@ contract BringFactoryCommon is Ownable {
     returns (address proxy)
     {
 
-        require(!isDeployed(_creator, _signer), "BRINGDROP_PROXY_CONTRACT_ALREADY_DEPLOYED");
-        require(_creator != address(0), "INVALID_BRINGDROP_MASTER_ADDRESS");
+        require(!isDeployed(_creator, _signer), "BRING_DROP_CONTRACT_ALREADY_DEPLOYED");
+        require(_creator != address(0), "INVALID_BRING_CREATOR_ADDRESS");
+        require(_signer != address(0), "INVALID_BRING_SIGNER_ADDRESS");        
 
         bytes32 _salt = salt(_creator, _signer);
-        bytes memory initcode = getInitcode();
+
+        // minimal proxy code
+        bytes memory initcode = (hex"6352c7420d6000526103ff60206004601c335afa6040516060f3");
 
         assembly {
             proxy := create2(0, add(initcode, 0x20), mload(initcode), _salt)
@@ -105,17 +108,6 @@ contract BringFactoryCommon is Ownable {
         return proxy;
     }
 
-
-    /**
-    * @dev Function to get bootstrap initcode for generating repeatable contract addresses
-    * @return Static bootstrap initcode
-    */
-    function getInitcode()
-    public view
-    returns (bytes memory)
-    {
-        return _initcode;
-    }
 
     /**
     * @dev Function to fetch the actual contract bytecode to install. Called by proxy when executing initcode
@@ -164,6 +156,31 @@ contract BringFactoryCommon is Ownable {
         return true;
     }
 
+
+     /**
+     * @dev Function to set the fee recipient address. Only the contract owner can update this value.
+     * @param _feeRecipient New fee recipient address to set.
+     * @return True if the fee recipient is updated successfully.
+     */
+    function setFeeRecipient(address _feeRecipient) public onlyOwner returns (bool) {
+        require(_feeRecipient != address(0), "INVALID_FEE_RECIPIENT_ADDRESS");
+        feeRecipient = _feeRecipient;
+        emit SetFeeRecipient(_feeRecipient);
+        return true;
+    }
+
+
+    /**
+     * @dev Function to update the fee value. Only the contract owner can update the fee.
+     * @param _fee New fee value to set.
+     * @return True if the fee is updated successfully.
+     */
+    function setFee(uint _fee) public onlyOwner returns (bool) {
+        fee = _fee;
+        emit SetFee(_fee);
+        return true;
+    }
+    
     /**
      * @dev Function to hash `_creator` and `_signer` params. Used as salt when deploying with create2
      * @param _creator Drop Creator address
