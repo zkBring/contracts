@@ -32,25 +32,6 @@ contract BringFactoryCommon is Ownable {
     function isDeployed(address _creator, address _signer) public view returns (bool) {
         return (deployed[salt(_creator, _signer)] != address(0));
     }
-
-    /**
-    * @dev Indicates whether a link is claimed or not
-    * @param _creator Account that created drop
-    * @param _signer signer address
-    * @param _linkId Address corresponding to link key
-    * @return True if claimed
-    */
-    function isClaimed(address _creator, address _signer, address _linkId) public view returns (bool) {
-
-        if (!isDeployed(_creator, _signer)) {
-            return false;
-        }
-        else {
-            address proxy = address(uint160(deployed[salt(_creator, _signer)]));
-            return IBringDropCommon(proxy).isClaimed(_linkId);
-        }
-    }
-
     
     /**
     * @dev Function to deploy a proxy contract for msg.sender and add a new signing key
