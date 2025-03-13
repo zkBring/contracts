@@ -16,6 +16,7 @@ contract DropERC20 is Ownable {
     bytes32 public zkPassTaskId;
     bytes32 public zkPassSchemaId;
     bool public stopped;
+    uint256 public expiration;    // Expiration timestamp
 
     // Mapping to track claimed unique identifiers (uHash)
     mapping(bytes32 => bool) public claimed;
@@ -34,6 +35,7 @@ contract DropERC20 is Ownable {
      * @param _totalClaims The total number of claims allowed.
      * @param _zkPassTaskId The zkPass task identifier.
      * @param _zkPassSchemaId The zkPass schema identifier.
+     * @param _expiration The expiration timestamp for the drop.
      */
     constructor(
         address _creator,
@@ -41,19 +43,26 @@ contract DropERC20 is Ownable {
         uint256 _amount,
         uint256 _totalClaims,
         bytes32 _zkPassTaskId,
-        bytes32 _zkPassSchemaId
+        bytes32 _zkPassSchemaId,
+        uint256 _expiration
     ) {
         token = _token;
         amount = _amount;
         totalClaims = _totalClaims;
         zkPassTaskId = _zkPassTaskId;
         zkPassSchemaId = _zkPassSchemaId;
+        expiration = _expiration;
         // Set the owner to the drop creator.
         _transferOwnership(_creator);
     }
 
     modifier notStopped() {
         require(!stopped, "Campaign stopped");
+        _;
+    }
+
+    modifier notExpired() {
+        require(block.timestamp < expiration, "Drop has expired");
         _;
     }
 
@@ -73,19 +82,17 @@ contract DropERC20 is Ownable {
         address recipient,
         bytes memory allocatorSignature,
         bytes memory validatorSignature
-    ) external notStopped {
+    ) external notStopped notExpired {
         require(!claimed[uHash], "Already claimed");
         require(claimedCount < totalClaims, "All claims exhausted");
 
         // Verify allocator signature.
-        // Encoded message: [zkPassTaskId, zkPassSchemaId, validatorAddress]
         bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validatorAddress);
         bytes32 allocatorHash = keccak256(allocatorData).toEthSignedMessageHash();
         address recoveredAllocator = allocatorHash.recover(allocatorSignature);
         require(recoveredAllocator == EXPECTED_ALLOCATOR_ADDRESS, "Invalid allocator signature");
 
         // Verify validator signature.
-        // Encoded message: [zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, recipient]
         bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, recipient);
         bytes32 validatorHash = keccak256(validatorData).toEthSignedMessageHash();
         address recoveredValidator = validatorHash.recover(validatorSignature);

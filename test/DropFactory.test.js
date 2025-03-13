@@ -35,9 +35,10 @@ describe("DropFactory", function () {
             const claims = 5;
             const zkPassTaskId = ethers.encodeBytes32String("taskId");
             const zkPassSchemaId = ethers.encodeBytes32String("schemaId");
+            const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
             // Create the drop
-            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId))
+            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId, expiration))
                 .to.emit(dropFactory, "DropCreated");
         });
 
@@ -47,10 +48,11 @@ describe("DropFactory", function () {
             const claims = 5;
             const zkPassTaskId = ethers.encodeBytes32String("taskId");
             const zkPassSchemaId = ethers.encodeBytes32String("schemaId");
+            const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
           
             // Attempt to create a drop without sufficient token allowance
-            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId))
+            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId, expiration))
                 .to.be.reverted;
         });
     });
