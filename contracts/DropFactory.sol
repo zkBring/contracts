@@ -17,7 +17,8 @@ contract DropFactory is Ownable {
         uint256 amount,
         uint256 claims,
         bytes32 zkPassTaskId,
-        bytes32 zkPassSchemaId
+        bytes32 zkPassSchemaId,
+        uint256 expiration
     );
     event FeeUpdated(uint256 newFee);
     event FeeRecipientUpdated(address newFeeRecipient);
@@ -44,6 +45,7 @@ contract DropFactory is Ownable {
      * @param claims The total number of claims allowed.
      * @param zkPassTaskId The zkPass task identifier.
      * @param zkPassSchemaId The zkPass schema identifier.
+     * @param expiration The expiration timestamp for the drop.
      * @return dropAddress The address of the newly created drop.
      */
     function createDrop(
@@ -51,7 +53,8 @@ contract DropFactory is Ownable {
         uint256 amount,
         uint256 claims,
         bytes32 zkPassTaskId,
-        bytes32 zkPassSchemaId
+        bytes32 zkPassSchemaId,
+        uint256 expiration
     ) external returns (address dropAddress) {
         uint256 totalDistribution = amount * claims;
         uint256 feeAmount = (totalDistribution * fee) / 10000;
@@ -70,7 +73,8 @@ contract DropFactory is Ownable {
             amount,
             claims,
             zkPassTaskId,
-            zkPassSchemaId
+            zkPassSchemaId,
+            expiration
         );
         dropAddress = address(drop);
 
@@ -86,6 +90,6 @@ contract DropFactory is Ownable {
             "Token transfer to drop failed"
         );
 
-        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassTaskId, zkPassSchemaId);
+        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassTaskId, zkPassSchemaId, expiration);
     }
 }
