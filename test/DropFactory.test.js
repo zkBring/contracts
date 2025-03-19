@@ -33,12 +33,12 @@ describe("DropFactory", function () {
             const tokenAddress = mockToken.target; // Use the mock token address
             const amount = ethers.parseUnits("10", 18);
             const claims = 5;
-            const zkPassTaskId = ethers.encodeBytes32String("taskId");
+            const metadataIpfsHash = ethers.encodeBytes32String("metadata");
             const zkPassSchemaId = ethers.encodeBytes32String("schemaId");
             const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
             // Create the drop
-            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId, expiration))
+          await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassSchemaId, expiration, metadataIpfsHash))
                 .to.emit(dropFactory, "DropCreated");
         });
 
@@ -46,13 +46,13 @@ describe("DropFactory", function () {
             const tokenAddress = mockToken.target; // Use the mock token address
             const amount = ethers.parseUnits("1000", 18); // Exceeding the allowance
             const claims = 5;
-            const zkPassTaskId = ethers.encodeBytes32String("taskId");
+            const metadataIpfsHash = ethers.encodeBytes32String("metadata");
             const zkPassSchemaId = ethers.encodeBytes32String("schemaId");
             const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
           
             // Attempt to create a drop without sufficient token allowance
-            await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassTaskId, zkPassSchemaId, expiration))
+          await expect(dropFactory.connect(addr2).createDrop(tokenAddress, amount, claims, zkPassSchemaId, expiration, metadataIpfsHash))
                 .to.be.reverted;
         });
     });

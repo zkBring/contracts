@@ -16,9 +16,9 @@ contract DropFactory is Ownable {
         address indexed token,
         uint256 amount,
         uint256 claims,
-        bytes32 zkPassTaskId,
         bytes32 zkPassSchemaId,
-        uint256 expiration
+        uint256 expiration,
+        bytes32 medataIpfsHash        
     );
     event FeeUpdated(uint256 newFee);
     event FeeRecipientUpdated(address newFeeRecipient);
@@ -43,18 +43,18 @@ contract DropFactory is Ownable {
      * @param token The ERC20 token address.
      * @param amount The amount of tokens per claim.
      * @param claims The total number of claims allowed.
-     * @param zkPassTaskId The zkPass task identifier.
      * @param zkPassSchemaId The zkPass schema identifier.
      * @param expiration The expiration timestamp for the drop.
+     * @param metadataIpfsHash Metadata for the drop (title, description).     
      * @return dropAddress The address of the newly created drop.
      */
     function createDrop(
         address token,
         uint256 amount,
         uint256 claims,
-        bytes32 zkPassTaskId,
         bytes32 zkPassSchemaId,
-        uint256 expiration
+        uint256 expiration,
+        bytes32 metadataIpfsHash        
     ) external returns (address dropAddress) {
         uint256 totalDistribution = amount * claims;
         uint256 feeAmount = (totalDistribution * fee) / 10000;
@@ -72,9 +72,9 @@ contract DropFactory is Ownable {
             token,
             amount,
             claims,
-            zkPassTaskId,
             zkPassSchemaId,
-            expiration
+            expiration,
+            metadataIpfsHash
         );
         dropAddress = address(drop);
 
@@ -90,6 +90,6 @@ contract DropFactory is Ownable {
             "Token transfer to drop failed"
         );
 
-        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassTaskId, zkPassSchemaId, expiration);
+        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassSchemaId, expiration, metadataIpfsHash);
     }
 }
