@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-verify");
 require('dotenv').config();
 
-const { PRIVATE_KEY, BASE_RPC_URL } = process.env;
+const { PRIVATE_KEY, BASE_RPC_URL, BASE_SEPOLIA_RPC_URL } = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -11,5 +11,9 @@ module.exports = {
       url: BASE_RPC_URL,
       accounts: [`0x${PRIVATE_KEY}`],
     },
+    "base-sepolia": {
+      url: BASE_SEPOLIA_RPC_URL,
+      accounts: [`0x${PRIVATE_KEY}`],
+    },    
   },
 };
