@@ -12,11 +12,11 @@ contract DropERC20 is Ownable {
     address public token;
     uint256 public amount;       // Amount per claim
     uint256 public totalClaims;  // Maximum number of claims allowed
-    uint256 public claimedCount;
-    bytes32 public zkPassTaskId;
+    uint256 public claims;       // Current number of claims
     bytes32 public zkPassSchemaId;
     bool public stopped;
     uint256 public expiration;    // Expiration timestamp
+    bytes32 public metadataIpfsHash;
 
     // Mapping to track claimed unique identifiers (uHash)
     mapping(bytes32 => bool) public claimed;
@@ -33,25 +33,26 @@ contract DropERC20 is Ownable {
      * @param _token The ERC20 token to be dropped.
      * @param _amount The amount of tokens per claim.
      * @param _totalClaims The total number of claims allowed.
-     * @param _zkPassTaskId The zkPass task identifier.
      * @param _zkPassSchemaId The zkPass schema identifier.
      * @param _expiration The expiration timestamp for the drop.
+     * @param _metadataIpfsHash Metadata for the drop (title, description).     
      */
     constructor(
         address _creator,
         address _token,
         uint256 _amount,
         uint256 _totalClaims,
-        bytes32 _zkPassTaskId,
         bytes32 _zkPassSchemaId,
-        uint256 _expiration
+        uint256 _expiration,
+        bytes32 _metadataIpfsHash        
     ) {
         token = _token;
         amount = _amount;
         totalClaims = _totalClaims;
-        zkPassTaskId = _zkPassTaskId;
         zkPassSchemaId = _zkPassSchemaId;
         expiration = _expiration;
+        metadataIpfsHash = _metadataIpfsHash;
+        
         // Set the owner to the drop creator.
         _transferOwnership(_creator);
     }
@@ -68,6 +69,7 @@ contract DropERC20 is Ownable {
 
     /**
      * @notice Claim tokens using a zkPass zkTLS proof.
+     * @param zkPassTaskId The zkPass task identifier.
      * @param validatorAddress The validator address provided by the allocator.
      * @param uHash Unique identifier for the claimer.
      * @param publicFieldsHash Hash of the public fields from the proof.
@@ -76,15 +78,16 @@ contract DropERC20 is Ownable {
      * @param validatorSignature Signature from the validator.
      */
     function claim(
-        address validatorAddress,
-        bytes32 uHash,
-        bytes32 publicFieldsHash,
-        address recipient,
-        bytes memory allocatorSignature,
-        bytes memory validatorSignature
+                   address zkPassTaskId,                   
+                   address validatorAddress,
+                   bytes32 uHash,
+                   bytes32 publicFieldsHash,
+                   address recipient,
+                   bytes memory allocatorSignature,
+                   bytes memory validatorSignature
     ) external notStopped notExpired {
         require(!claimed[uHash], "Already claimed");
-        require(claimedCount < totalClaims, "All claims exhausted");
+        require(claims < totalClaims, "All claims exhausted");
 
         // Verify allocator signature.
         bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validatorAddress);
@@ -100,7 +103,7 @@ contract DropERC20 is Ownable {
 
         // Mark the claim as used.
         claimed[uHash] = true;
-        claimedCount++;
+        claims++;
 
         // Transfer tokens from the contract's balance to the recipient.
         require(IERC20(token).transfer(recipient, amount), "Token transfer failed");
