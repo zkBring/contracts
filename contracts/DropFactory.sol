@@ -18,7 +18,7 @@ contract DropFactory is Ownable {
         uint256 claims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
-        bytes32 medataIpfsHash        
+        bytes32 metadataIpfsHash        
     );
     event FeeUpdated(uint256 newFee);
     event FeeRecipientUpdated(address newFeeRecipient);
