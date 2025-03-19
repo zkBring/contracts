@@ -11,7 +11,7 @@ contract DropERC20 is Ownable {
     // Drop configuration
     address public token;
     uint256 public amount;       // Amount per claim
-    uint256 public totalClaims;  // Maximum number of claims allowed
+    uint256 public maxClaims;  // Maximum number of claims allowed
     uint256 public claims;       // Current number of claims
     bytes32 public zkPassSchemaId;
     bool public stopped;
@@ -24,7 +24,7 @@ contract DropERC20 is Ownable {
     // Fixed expected allocator address from zkPass documentation.
     address public constant EXPECTED_ALLOCATOR_ADDRESS = 0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d;
 
-    event Claimed(bytes32 indexed uHash, address recipient);
+    event Claimed(address indexed recipient, bytes32 uHash);
     event Stopped();
 
     /**
@@ -32,7 +32,7 @@ contract DropERC20 is Ownable {
      * @param _creator The address of the drop creator.
      * @param _token The ERC20 token to be dropped.
      * @param _amount The amount of tokens per claim.
-     * @param _totalClaims The total number of claims allowed.
+     * @param _maxClaims The total number of claims allowed.
      * @param _zkPassSchemaId The zkPass schema identifier.
      * @param _expiration The expiration timestamp for the drop.
      * @param _metadataIpfsHash Metadata for the drop (title, description).     
@@ -41,14 +41,14 @@ contract DropERC20 is Ownable {
         address _creator,
         address _token,
         uint256 _amount,
-        uint256 _totalClaims,
+        uint256 _maxClaims,
         bytes32 _zkPassSchemaId,
         uint256 _expiration,
         bytes32 _metadataIpfsHash        
     ) {
         token = _token;
         amount = _amount;
-        totalClaims = _totalClaims;
+        maxClaims = _maxClaims;
         zkPassSchemaId = _zkPassSchemaId;
         expiration = _expiration;
         metadataIpfsHash = _metadataIpfsHash;
@@ -87,7 +87,7 @@ contract DropERC20 is Ownable {
                    bytes memory validatorSignature
     ) external notStopped notExpired {
         require(!claimed[uHash], "Already claimed");
-        require(claims < totalClaims, "All claims exhausted");
+        require(claims < maxClaims, "All claims exhausted");
 
         // Verify allocator signature.
         bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validatorAddress);
@@ -108,7 +108,7 @@ contract DropERC20 is Ownable {
         // Transfer tokens from the contract's balance to the recipient.
         require(IERC20(token).transfer(recipient, amount), "Token transfer failed");
 
-        emit Claimed(uHash, recipient);
+        emit Claimed(recipient, uHash);
     }
 
     /**
