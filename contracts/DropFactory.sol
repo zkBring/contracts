@@ -15,7 +15,7 @@ contract DropFactory is Ownable {
         address indexed drop,
         address indexed token,
         uint256 amount,
-        uint256 claims,
+        uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
         bytes32 metadataIpfsHash        
@@ -42,7 +42,7 @@ contract DropFactory is Ownable {
      * @notice Create a new ERC20 drop.
      * @param token The ERC20 token address.
      * @param amount The amount of tokens per claim.
-     * @param claims The total number of claims allowed.
+     * @param maxClaims The total number of claims allowed.
      * @param zkPassSchemaId The zkPass schema identifier.
      * @param expiration The expiration timestamp for the drop.
      * @param metadataIpfsHash Metadata for the drop (title, description).     
@@ -51,12 +51,12 @@ contract DropFactory is Ownable {
     function createDrop(
         address token,
         uint256 amount,
-        uint256 claims,
+        uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
         bytes32 metadataIpfsHash        
     ) external returns (address dropAddress) {
-        uint256 totalDistribution = amount * claims;
+        uint256 totalDistribution = amount * maxClaims;
         uint256 feeAmount = (totalDistribution * fee) / 10000;
         uint256 requiredTotal = totalDistribution + feeAmount;
 
@@ -71,7 +71,7 @@ contract DropFactory is Ownable {
             msg.sender,
             token,
             amount,
-            claims,
+            maxClaims,
             zkPassSchemaId,
             expiration,
             metadataIpfsHash
@@ -90,6 +90,6 @@ contract DropFactory is Ownable {
             "Token transfer to drop failed"
         );
 
-        emit DropCreated(msg.sender, dropAddress, token, amount, claims, zkPassSchemaId, expiration, metadataIpfsHash);
+        emit DropCreated(msg.sender, dropAddress, token, amount, maxClaims, zkPassSchemaId, expiration, metadataIpfsHash);
     }
 }

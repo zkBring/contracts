@@ -74,33 +74,45 @@ contract DropERC20 is Ownable {
      * @param uHash Unique identifier for the claimer.
      * @param publicFieldsHash Hash of the public fields from the proof.
      * @param recipient The address to receive the tokens.
+     * @param ephemeralKeyAddress The address corresponding to ephemeral key
+     * @param ephemeralKeySignature Signature from the claim key authorizing.     
      * @param allocatorSignature Signature from the allocator.
      * @param validatorSignature Signature from the validator.
      */
     function claim(
-                   address zkPassTaskId,                   
+                   bytes32 zkPassTaskId,                   
                    address validatorAddress,
                    bytes32 uHash,
                    bytes32 publicFieldsHash,
                    address recipient,
+                   address ephemeralKeyAddress,
+                   bytes memory ephemeralKeySignature,
                    bytes memory allocatorSignature,
                    bytes memory validatorSignature
     ) external notStopped notExpired {
         require(!claimed[uHash], "Already claimed");
         require(claims < maxClaims, "All claims exhausted");
-
+        {
+        // Verify ephemeral signature.
+        bytes memory ephemeralKeyData = abi.encode(recipient);
+        bytes32 ephemeralKeyHash = keccak256(ephemeralKeyData).toEthSignedMessageHash();
+        address recoveredEphemeralKey = ephemeralKeyHash.recover(ephemeralKeySignature);
+        require(recoveredEphemeralKey == ephemeralKeyAddress, "Invalid ephemeral key signature");
+        }
+        {
         // Verify allocator signature.
         bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validatorAddress);
         bytes32 allocatorHash = keccak256(allocatorData).toEthSignedMessageHash();
         address recoveredAllocator = allocatorHash.recover(allocatorSignature);
         require(recoveredAllocator == EXPECTED_ALLOCATOR_ADDRESS, "Invalid allocator signature");
-
+        }
+        {
         // Verify validator signature.
-        bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, recipient);
+        bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash);
         bytes32 validatorHash = keccak256(validatorData).toEthSignedMessageHash();
         address recoveredValidator = validatorHash.recover(validatorSignature);
         require(recoveredValidator == validatorAddress, "Invalid validator signature");
-
+        }
         // Mark the claim as used.
         claimed[uHash] = true;
         claims++;
