@@ -1,10 +1,12 @@
+const { hexlify, toUtf8Bytes } = require("ethers")
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   
   console.log("Creating new Drop from: ", deployer.address);
   
   // Connect to the already deployed DropFactory
-  const dropFactoryAddress = "0xe95265429848b48E7a45c0566A9C088B72ecd1EA";
+  const dropFactoryAddress = "0xfab2030f5d52b605990266dd92c162fa871b1148";
   const DropFactory = await ethers.getContractFactory("DropFactory");
   const dropFactory = DropFactory.attach(dropFactoryAddress);
 
@@ -19,7 +21,7 @@ async function main() {
   const amount = ethers.parseUnits("1000", 18);
   const claims = 5;
   const metadataIpfsHash = ethers.encodeBytes32String("metadata");
-  const zkPassSchemaId = ethers.encodeBytes32String("schemaId");
+  const zkPassSchemaId = hexlify(toUtf8Bytes("c38b96722bd24b64b8d349ffd6391a8c"));
   const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
   console.log("creating drop")
