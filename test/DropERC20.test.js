@@ -18,9 +18,29 @@ const generateEphemeralKeySig = async (ephemeralKey, recipient) => {
   const splitSig = wallet.signingKey.sign(messageHash);
   const signature = ethers.Signature.from(splitSig).serialized  
   // const recovered = ethers.recoverAddress(messageHash, signature);
-
   return signature
 }
+
+function xorAddresses(address1, address2) {
+  // Remove the "0x" prefix if it exists
+  const addr1 = address1.startsWith("0x") ? address1.slice(2) : address1;
+  const addr2 = address2.startsWith("0x") ? address2.slice(2) : address2;
+  
+  if (addr1.length !== 40 || addr2.length !== 40) {
+    throw new Error("Invalid address length");
+  }
+
+  // Convert the hex strings to BigInts and perform XOR
+  const resultBigInt = BigInt("0x" + addr1) ^ BigInt("0x" + addr2);
+
+  // Convert back to hex, pad to 40 hex characters, and add "0x" prefix
+  let resultHex = resultBigInt.toString(16);
+  resultHex = resultHex.padStart(40, "0");
+  
+  return "0x" + resultHex;
+}
+
+
 
 // const verifyAllocatorSig = async (taskId, schemaId, validator, signature) => {
 //   // // Encode parameters as bytes
@@ -118,12 +138,7 @@ describe("DropERC20", function () {
 
     // Test 2: Successful claim with ephemeral key
     it("should allow a valid user to claim tokens with ephemeral key", async function () {
-      
-      console.log({ dropAddress: dropERC20.target});
       const ephemeralKeyAddress = "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"
-      const wbRecipient = await dropERC20.computeWpRecipientForEphemeralKey(ephemeralKeyAddress)
-      console.log({ wbRecipient })      
-      
       const webproof = {
         "taskId": "4ae88eda9a9646698207ac05c268fa56",
         "publicFields": [],
@@ -139,7 +154,7 @@ describe("DropERC20", function () {
       // this is a test key, do not import it and do not use it
       const ephemeralKey = EPHEMERAL_KEY
       const ephemeralKeySig = await generateEphemeralKeySig(ephemeralKey, user1.address)
-
+      
       const balanceBefore = await token.balanceOf(user1.address);            
       // Call claim function
       await dropERC20.connect(user1).claimWithEphemeralKey(
@@ -158,6 +173,12 @@ describe("DropERC20", function () {
       expect(balanceAfter - balanceBefore).to.equal(amount);
     });
 
+    
+    it("should corerctly compute webproof recipient for ephemeral key", async function () {
+      const ephemeralKeyAddress = "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"
+      const computedWpRecipient = xorAddresses(dropERC20.target, ephemeralKeyAddress).toLowerCase()
+      const wpRecipient = (await dropERC20.computeWpRecipientForEphemeralKey(ephemeralKeyAddress)).toLowerCase()
+    })    
     
     // Test 2: Prevent double claims
     xit("should prevent a user from claiming twice", async function () {
