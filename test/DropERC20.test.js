@@ -2,8 +2,8 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { hexlify, toUtf8Bytes } = require('ethers')
 
-
-const EPHEMERAL_KEY = "3f152b434d72ee6fdfebfae22b5e398b08ca51668c645a2903fa89b616230591"
+const EPHEMERAL_KEY = "3f152b434d72ee6fdfebfae22b5e398b08ca51668c645a2903fa89b616230591";
+const ZK_PASS_ALLOCATOR_ADDRESS = "0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d";
 
 const generateEphemeralKeySig = async (ephemeralKey, recipient) => {
   const wallet = new ethers.Wallet(ephemeralKey)
@@ -90,7 +90,8 @@ describe("DropERC20", function () {
       claims,
       zkPassSchemaId,
       expiration,
-      metadataIpfsHash      
+      metadataIpfsHash,
+      ZK_PASS_ALLOCATOR_ADDRESS
     );
     
     // Transfer tokens to the drop contract

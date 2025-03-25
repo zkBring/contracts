@@ -21,8 +21,8 @@ contract DropERC20 is Ownable {
     // Mapping to track claimed unique identifiers (uHash)
     mapping(bytes32 => bool) public claimed;
 
-    // Fixed expected allocator address from zkPass documentation.
-    address public constant EXPECTED_ALLOCATOR = 0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d;
+    // expected allocator address from zkPass.
+    address public immutable ZK_PASS_ALLOCATOR_ADDRESS;
 
     event Claimed(address indexed recipient, bytes32 uHash);
     event Stopped();
@@ -44,7 +44,8 @@ contract DropERC20 is Ownable {
         uint256 _maxClaims,
         bytes32 _zkPassSchemaId,
         uint256 _expiration,
-        bytes32 _metadataIpfsHash        
+        bytes32 _metadataIpfsHash,
+        address _zkPassAllocator
     ) {
         token = _token;
         amount = _amount;
@@ -52,6 +53,7 @@ contract DropERC20 is Ownable {
         zkPassSchemaId = _zkPassSchemaId;
         expiration = _expiration;
         metadataIpfsHash = _metadataIpfsHash;
+        ZK_PASS_ALLOCATOR_ADDRESS = _zkPassAllocator;
         
         // Set the owner to the drop creator.
         _transferOwnership(_creator);
@@ -193,7 +195,7 @@ contract DropERC20 is Ownable {
         bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validator);
         bytes32 allocatorHash = keccak256(allocatorData).toEthSignedMessageHash();
         address recovered = allocatorHash.recover(allocatorSig);
-        return (recovered == EXPECTED_ALLOCATOR);
+        return (recovered == ZK_PASS_ALLOCATOR_ADDRESS);
     }
 
     function verifyValidatorSignature(

@@ -2,6 +2,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const ZK_PASS_ALLOCATOR_ADDRESS = "0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d";
+
 describe("DropFactory", function () {
     let DropFactory, dropFactory, MockERC20, mockToken, owner, addr1, addr2;
 
@@ -15,7 +17,7 @@ describe("DropFactory", function () {
       mockToken = await MockERC20.connect(addr2).deploy(ethers.parseUnits("1000000", 18)); // Mint 1000 tokens
 
       // Deploy the DropFactory contract
-      dropFactory = await DropFactory.deploy(100, addr1.address); // 1% fee
+      dropFactory = await DropFactory.deploy(100, addr1.address, ZK_PASS_ALLOCATOR_ADDRESS); // 1% fee
       
       // Approve the DropFactory to spend tokens on behalf of addr2
       await mockToken.connect(addr2).approve(dropFactory.target, ethers.parseUnits("100", 18)); // Approve 100 tokens
@@ -23,8 +25,9 @@ describe("DropFactory", function () {
 
     describe("Deployment", function () {
         it("Should set the right fee and fee recipient", async function () {
-            expect(await dropFactory.fee()).to.equal(100);
-            expect(await dropFactory.feeRecipient()).to.equal(addr1.address);
+          expect(await dropFactory.fee()).to.equal(100);
+          expect(await dropFactory.feeRecipient()).to.equal(addr1.address);
+          expect(await dropFactory.ZK_PASS_ALLOCATOR_ADDRESS()).to.equal(ZK_PASS_ALLOCATOR_ADDRESS);   
         });
     });
 
