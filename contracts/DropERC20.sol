@@ -22,7 +22,7 @@ contract DropERC20 is Ownable {
     mapping(bytes32 => bool) public claimed;
 
     // Fixed expected allocator address from zkPass documentation.
-    address public constant EXPECTED_ALLOCATOR_ADDRESS = 0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d;
+    address public constant EXPECTED_ALLOCATOR = 0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d;
 
     event Claimed(address indexed recipient, bytes32 uHash);
     event Stopped();
@@ -70,87 +70,87 @@ contract DropERC20 is Ownable {
     /**
      * @notice Claim tokens with ephemeral key using a zkPass zkTLS proof.
      * @param zkPassTaskId The zkPass task identifier.
-     * @param validatorAddress The validator address provided by the allocator.
+     * @param validator The validator address provided by the allocator.
      * @param uHash Unique identifier for the claimer.
      * @param publicFieldsHash Hash of the public fields from the proof.
      * @param recipient The address to receive the tokens.
-     * @param ephemeralKeyAddress The address corresponding to ephemeral key
-     * @param ephemeralKeySignature Signature from the claim key authorizing.     
-     * @param allocatorSignature Signature from the allocator.
-     * @param validatorSignature Signature from the validator.
+     * @param ephemeralKey The address corresponding to ephemeral key
+     * @param ephemeralSig Signature from the claim key authorizing.     
+     * @param allocatorSig Signature from the allocator.
+     * @param validatorSig Signature from the validator.
      */
     function claimWithEphemeralKey(
         bytes32 zkPassTaskId,
-        address validatorAddress,
+        address validator,
         bytes32 uHash,
         bytes32 publicFieldsHash,
         address recipient,
-        address ephemeralKeyAddress,
-        bytes memory ephemeralKeySignature,
-        bytes memory allocatorSignature,
-        bytes memory validatorSignature
+        address ephemeralKey,
+        bytes memory ephemeralSig,
+        bytes memory allocatorSig,
+        bytes memory validatorSig
     ) external {
         
         // Verify ephemeral signature.
-        require(verifyEphemeralKeySignature(recipient, ephemeralKeyAddress, ephemeralKeySignature), "Invalid ephemeral key signature");           
+        require(verifyEphemeralSignature(recipient, ephemeralKey, ephemeralSig), "Invalid ephemeral key signature");           
         
         _claim(zkPassTaskId,
-               validatorAddress,
+               validator,
                uHash,
                publicFieldsHash,
                recipient,
-               ephemeralKeyAddress,
-               allocatorSignature,
-               validatorSignature);
+               ephemeralKey,
+               allocatorSig,
+               validatorSig);
     }
 
     /**
      * @notice Claim tokens using a zkPass zkTLS proof.
      * @param zkPassTaskId The zkPass task identifier.
-     * @param validatorAddress The validator address provided by the allocator.
+     * @param validator The validator address provided by the allocator.
      * @param uHash Unique identifier for the claimer.
      * @param publicFieldsHash Hash of the public fields from the proof.
-     * @param allocatorSignature Signature from the allocator.
-     * @param validatorSignature Signature from the validator.
+     * @param allocatorSig Signature from the allocator.
+     * @param validatorSig Signature from the validator.
      */
     function claim(
         bytes32 zkPassTaskId,
-        address validatorAddress,
+        address validator,
         bytes32 uHash,
         bytes32 publicFieldsHash,
-        bytes memory allocatorSignature,
-        bytes memory validatorSignature
+        bytes memory allocatorSig,
+        bytes memory validatorSig
     ) external {
         address recipient = msg.sender;
         _claim(zkPassTaskId,
-               validatorAddress,
+               validator,
                uHash,
                publicFieldsHash,
                recipient,
                recipient,
-               allocatorSignature,
-               validatorSignature);
+               allocatorSig,
+               validatorSig);
     }
 
     
     function _claim(
         bytes32 zkPassTaskId,
-        address validatorAddress,
+        address validator,
         bytes32 uHash,
         bytes32 publicFieldsHash,
         address recipient,
-        address webproofRecipientAddress,
-        bytes memory allocatorSignature,
-        bytes memory validatorSignature
+        address webproofRecipient,
+        bytes memory allocatorSig,
+        bytes memory validatorSig
 ) private notStopped notExpired {
         require(!claimed[uHash], "Already claimed");
         require(claims < maxClaims, "All claims exhausted");
 
         // Verify allocator signature.
-        require(verifyAllocatorSignature(zkPassTaskId, validatorAddress, allocatorSignature), "Invalid allocator signature");
+        require(verifyAllocatorSignature(zkPassTaskId, validator, allocatorSig), "Invalid allocator signature");
         
         // Verify validator signature.
-        require(verifyValidatorSignature(zkPassTaskId, uHash, publicFieldsHash, webproofRecipientAddress, validatorAddress, validatorSignature), "Invalid validator signature");
+        require(verifyValidatorSignature(zkPassTaskId, uHash, publicFieldsHash, webproofRecipient, validator, validatorSig), "Invalid validator signature");
 
         // Mark the claim as used.
         claimed[uHash] = true;
@@ -184,13 +184,13 @@ contract DropERC20 is Ownable {
 
     function verifyAllocatorSignature(
         bytes32 zkPassTaskId, 
-        address validatorAddress,
-        bytes memory allocatorSignature
+        address validator,
+        bytes memory allocatorSig
     ) public view returns (bool) {
-        bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validatorAddress);
+        bytes memory allocatorData = abi.encode(zkPassTaskId, zkPassSchemaId, validator);
         bytes32 allocatorHash = keccak256(allocatorData).toEthSignedMessageHash();
-        address recoveredAllocator = allocatorHash.recover(allocatorSignature);
-        return (recoveredAllocator == EXPECTED_ALLOCATOR_ADDRESS);
+        address recovered = allocatorHash.recover(allocatorSig);
+        return (recovered == EXPECTED_ALLOCATOR);
     }
 
     function verifyValidatorSignature(
@@ -198,23 +198,29 @@ contract DropERC20 is Ownable {
         bytes32 uHash,
         bytes32 publicFieldsHash,
         address webproofRecipientAddress,
-        address validatorAddress,
-        bytes memory validatorSignature
+        address validator,
+        bytes memory validatorSig
     ) public view returns (bool) {
         bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, webproofRecipientAddress);
         bytes32 validatorHash = keccak256(validatorData).toEthSignedMessageHash();
-        address recoveredValidator = validatorHash.recover(validatorSignature);
-        return (recoveredValidator == validatorAddress);
+        address recovered = validatorHash.recover(validatorSig);
+        return (recovered == validator);
     }
 
-    function verifyEphemeralKeySignature(
+    function verifyEphemeralSignature(
                                          address recipient,
-                                         address ephemeralKeyAddress,
-                                         bytes memory ephemeralKeySignature
+                                         address ephemeralKey,
+                                         bytes memory ephemeralSig
     ) public pure returns (bool) {
-        bytes memory ephemeralKeyData = abi.encode(recipient);
-        bytes32 ephemeralKeyHash = keccak256(ephemeralKeyData).toEthSignedMessageHash();
-        address recoveredEphemeralKey = ephemeralKeyHash.recover(ephemeralKeySignature);
-        return (recoveredEphemeralKey == ephemeralKeyAddress);        
+        bytes memory ephemeralData = abi.encode(recipient);
+        bytes32 ephemeralHash = keccak256(ephemeralData).toEthSignedMessageHash();
+        address recovered = ephemeralHash.recover(ephemeralSig);
+        return (recovered == ephemeralKey);        
+    }
+
+    // Function to compute webproof recipient for epheremeral key
+    function computeWpRecipientForEphemeralKey(address ephemeralKey) public view returns (address) {
+        // Convert addresses to uint160 (their underlying numeric representation), perform XOR, then cast back to address.
+        return address(uint160(address(this)) ^ uint160(ephemeralKey));
     }
 }
