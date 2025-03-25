@@ -110,7 +110,6 @@ contract DropERC20 is Ownable {
      * @param validatorAddress The validator address provided by the allocator.
      * @param uHash Unique identifier for the claimer.
      * @param publicFieldsHash Hash of the public fields from the proof.
-     * @param recipient The address to receive the tokens.
      * @param allocatorSignature Signature from the allocator.
      * @param validatorSignature Signature from the validator.
      */
@@ -119,10 +118,10 @@ contract DropERC20 is Ownable {
         address validatorAddress,
         bytes32 uHash,
         bytes32 publicFieldsHash,
-        address recipient,
         bytes memory allocatorSignature,
         bytes memory validatorSignature
-    ) external {        
+    ) external {
+        address recipient = msg.sender;
         _claim(zkPassTaskId,
                validatorAddress,
                uHash,
@@ -140,7 +139,7 @@ contract DropERC20 is Ownable {
         bytes32 uHash,
         bytes32 publicFieldsHash,
         address recipient,
-        address ephemeralKeyAddress,
+        address webproofRecipientAddress,
         bytes memory allocatorSignature,
         bytes memory validatorSignature
 ) private notStopped notExpired {
@@ -151,7 +150,7 @@ contract DropERC20 is Ownable {
         require(verifyAllocatorSignature(zkPassTaskId, validatorAddress, allocatorSignature), "Invalid allocator signature");
         
         // Verify validator signature.
-        require(verifyValidatorSignature(zkPassTaskId, uHash, publicFieldsHash, ephemeralKeyAddress, validatorAddress, validatorSignature), "Invalid validator signature");
+        require(verifyValidatorSignature(zkPassTaskId, uHash, publicFieldsHash, webproofRecipientAddress, validatorAddress, validatorSignature), "Invalid validator signature");
 
         // Mark the claim as used.
         claimed[uHash] = true;
@@ -198,11 +197,11 @@ contract DropERC20 is Ownable {
         bytes32 zkPassTaskId,
         bytes32 uHash,
         bytes32 publicFieldsHash,
-        address recipient,
+        address webproofRecipientAddress,
         address validatorAddress,
         bytes memory validatorSignature
     ) public view returns (bool) {
-        bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, recipient);
+        bytes memory validatorData = abi.encode(zkPassTaskId, zkPassSchemaId, uHash, publicFieldsHash, webproofRecipientAddress);
         bytes32 validatorHash = keccak256(validatorData).toEthSignedMessageHash();
         address recoveredValidator = validatorHash.recover(validatorSignature);
         return (recoveredValidator == validatorAddress);

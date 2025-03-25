@@ -2,6 +2,9 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { hexlify, toUtf8Bytes } = require('ethers')
 
+
+const EPHEMERAL_KEY = "3f152b434d72ee6fdfebfae22b5e398b08ca51668c645a2903fa89b616230591"
+
 const generateEphemeralKeySig = async (ephemeralKey, recipient) => {
   const wallet = new ethers.Wallet(ephemeralKey)
   const abiCoder = new ethers.AbiCoder();  
@@ -74,7 +77,7 @@ describe("DropERC20", function () {
     await token.transfer(dropERC20.target, amount * BigInt(claims));
   });
 
-  describe("claim", function () {
+  describe("claim direclty", function () {
     // Test 1: Successful claim
     it("should allow a valid user to claim tokens", async function () {
       const webproof = {
@@ -88,14 +91,23 @@ describe("DropERC20", function () {
         "validatorSignature": "0xcc97b2dc887e94013b7f4236b1412818065bf0ef94bbdb1b6b71a6b78d69d20852c834bbf3a123942a7386bac12ebd6da51a82217d269f9572aaa1422392ea111b",
         "recipient": "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"
       }
-            
+
+      const ephemeralWallet = new ethers.Wallet(EPHEMERAL_KEY, ethers.provider);
+      expect(ephemeralWallet.address).to.eq(webproof.recipient);
+
+    const [deployer] = await ethers.getSigners();
+    const fundingTx = await deployer.sendTransaction({
+      to: ephemeralWallet.address,
+      value: ethers.parseUnits("1", 18), // Sending 1 ETH (adjust as needed)
+    });
+    await fundingTx.wait();
+      
       // Call claim function
-      await dropERC20.connect(user1).claim(
+      await dropERC20.connect(ephemeralWallet).claim(
         hexlify(toUtf8Bytes(webproof.taskId)),
         webproof.validatorAddress,
         webproof.uHash,
         webproof.publicFieldsHash,
-        webproof.recipient,
         webproof.allocatorSignature,
         webproof.validatorSignature
       );
@@ -119,7 +131,7 @@ describe("DropERC20", function () {
       }
 
       // this is a test key, do not import it and do not use it
-      const ephemeralKey = "3f152b434d72ee6fdfebfae22b5e398b08ca51668c645a2903fa89b616230591"
+      const ephemeralKey = EPHEMERAL_KEY
       const ephemeralKeySig = await generateEphemeralKeySig(ephemeralKey, user1.address)
 
       const balanceBefore = await token.balanceOf(user1.address);            
