@@ -94,13 +94,13 @@ describe("DropERC20", function () {
 
       const ephemeralWallet = new ethers.Wallet(EPHEMERAL_KEY, ethers.provider);
       expect(ephemeralWallet.address).to.eq(webproof.recipient);
-
-    const [deployer] = await ethers.getSigners();
-    const fundingTx = await deployer.sendTransaction({
-      to: ephemeralWallet.address,
-      value: ethers.parseUnits("1", 18), // Sending 1 ETH (adjust as needed)
-    });
-    await fundingTx.wait();
+      
+      const [deployer] = await ethers.getSigners();
+      const fundingTx = await deployer.sendTransaction({
+        to: ephemeralWallet.address,
+        value: ethers.parseUnits("1", 18), // Sending 1 ETH (adjust as needed)
+      });
+      await fundingTx.wait();
       
       // Call claim function
       await dropERC20.connect(ephemeralWallet).claim(
@@ -118,16 +118,22 @@ describe("DropERC20", function () {
 
     // Test 2: Successful claim with ephemeral key
     it("should allow a valid user to claim tokens with ephemeral key", async function () {
+      
+      console.log({ dropAddress: dropERC20.target});
+      const ephemeralKeyAddress = "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"
+      const wbRecipient = await dropERC20.computeWpRecipientForEphemeralKey(ephemeralKeyAddress)
+      console.log({ wbRecipient })      
+      
       const webproof = {
-        "taskId": "0cad2ec6ef3248a992d59e2315ce38d1",
+        "taskId": "4ae88eda9a9646698207ac05c268fa56",
         "publicFields": [],
         "allocatorAddress": "0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d",
         "publicFieldsHash": "0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6",
-        "allocatorSignature": "0xe7694921b02ebd3c44a50ed83fda61bfe2de576c06096f121c2a3fb7c8b6000e793c1968d0e7dc417d68cebf95bc0a757f3371828085787d53bd1afd64a83d601b",
+        "allocatorSignature": "0x46a07a2eb2fd77eac153218ead5f5d6662f73d19d7f8cdbb7810d00968a87b713d403908ba80e4a51818818de7f92d0077bf19e82405f1f6288301af49cb02f81b",
         "uHash": "0xd4b1ee22a7a2eeb2adf53d79b7430a396ffcf699276112fa21949b8ff8fd172c",
         "validatorAddress": "0xb1C4C1E1Cdd5Cf69E27A3A08C8f51145c2E12C6a",
-        "validatorSignature": "0xcc97b2dc887e94013b7f4236b1412818065bf0ef94bbdb1b6b71a6b78d69d20852c834bbf3a123942a7386bac12ebd6da51a82217d269f9572aaa1422392ea111b",
-        "recipient": "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"
+        "validatorSignature": "0x50e47d5f6b9789045edbc2c08c9c915d30231399b1f2edac656a25d4452ac6a3582c403ca7f5d9cb2c45b691cb5a4db2e204204c92593478eb87c9bc1de501491c",
+        "recipient": "0xB3171aeCA4807933D6a532e5b97988c4235F1c1d"
       }
 
       // this is a test key, do not import it and do not use it
@@ -142,7 +148,7 @@ describe("DropERC20", function () {
         webproof.uHash,
         webproof.publicFieldsHash,
         user1.address,
-        webproof.recipient,
+        ephemeralKeyAddress,
         ephemeralKeySig,
         webproof.allocatorSignature,
         webproof.validatorSignature

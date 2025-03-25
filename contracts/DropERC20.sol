@@ -90,6 +90,9 @@ contract DropERC20 is Ownable {
         bytes memory allocatorSig,
         bytes memory validatorSig
     ) external {
+
+        // compute recipient address that was provided in the webproof
+        address webproofRecipient = computeWpRecipientForEphemeralKey(ephemeralKey);
         
         // Verify ephemeral signature.
         require(verifyEphemeralSignature(recipient, ephemeralKey, ephemeralSig), "Invalid ephemeral key signature");           
@@ -99,7 +102,7 @@ contract DropERC20 is Ownable {
                uHash,
                publicFieldsHash,
                recipient,
-               ephemeralKey,
+               webproofRecipient,
                allocatorSig,
                validatorSig);
     }
