@@ -9,7 +9,8 @@ contract DropFactory is Ownable {
     // Fee 0.01 percentage (e.g., 5 means 0.05%)
     uint256 public fee;
     address public feeRecipient;
-
+    address public immutable ZK_PASS_ALLOCATOR_ADDRESS;
+    
     event DropCreated(
         address indexed creator,
         address indexed drop,
@@ -18,14 +19,15 @@ contract DropFactory is Ownable {
         uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
-        bytes32 metadataIpfsHash        
+        string metadataIpfsHash        
     );
     event FeeUpdated(uint256 newFee);
     event FeeRecipientUpdated(address newFeeRecipient);
 
-    constructor(uint256 _fee, address _feeRecipient) {
+    constructor(uint256 _fee, address _feeRecipient, address _zkPassAllocator) {
         fee = _fee;
         feeRecipient = _feeRecipient;
+        ZK_PASS_ALLOCATOR_ADDRESS = _zkPassAllocator;
     }
 
     function updateFee(uint256 _fee) external onlyOwner {
@@ -54,7 +56,7 @@ contract DropFactory is Ownable {
         uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
-        bytes32 metadataIpfsHash        
+        string memory metadataIpfsHash        
     ) external returns (address dropAddress) {
         uint256 totalDistribution = amount * maxClaims;
         uint256 feeAmount = (totalDistribution * fee) / 10000;
@@ -74,7 +76,8 @@ contract DropFactory is Ownable {
             maxClaims,
             zkPassSchemaId,
             expiration,
-            metadataIpfsHash
+            metadataIpfsHash,
+            ZK_PASS_ALLOCATOR_ADDRESS
         );
         dropAddress = address(drop);
 
