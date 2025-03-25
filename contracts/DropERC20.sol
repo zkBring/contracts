@@ -16,7 +16,7 @@ contract DropERC20 is Ownable {
     bytes32 public zkPassSchemaId;
     bool public stopped;
     uint256 public expiration;    // Expiration timestamp
-    bytes32 public metadataIpfsHash;
+    string public metadataIpfsHash;
 
     // Mapping to track claimed unique identifiers (uHash)
     mapping(bytes32 => bool) public claimed;
@@ -44,7 +44,7 @@ contract DropERC20 is Ownable {
         uint256 _maxClaims,
         bytes32 _zkPassSchemaId,
         uint256 _expiration,
-        bytes32 _metadataIpfsHash,
+        string memory _metadataIpfsHash,
         address _zkPassAllocator
     ) {
         token = _token;

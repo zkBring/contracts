@@ -19,7 +19,7 @@ contract DropFactory is Ownable {
         uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
-        bytes32 metadataIpfsHash        
+        string metadataIpfsHash        
     );
     event FeeUpdated(uint256 newFee);
     event FeeRecipientUpdated(address newFeeRecipient);
@@ -56,7 +56,7 @@ contract DropFactory is Ownable {
         uint256 maxClaims,
         bytes32 zkPassSchemaId,
         uint256 expiration,
-        bytes32 metadataIpfsHash        
+        string memory metadataIpfsHash        
     ) external returns (address dropAddress) {
         uint256 totalDistribution = amount * maxClaims;
         uint256 feeAmount = (totalDistribution * fee) / 10000;

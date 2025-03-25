@@ -50,6 +50,17 @@ describe("DropERC20", function () {
     await token.transfer(dropERC20.target, amount * BigInt(claims));
   });
 
+  describe("Storing data", function () {
+    it("should store correct data", async function() {
+      expect(await dropERC20.owner()).to.equal(owner.address)
+      expect(await dropERC20.amount()).to.equal(amount)
+      expect(await dropERC20.token()).to.equal(token)
+      expect(await dropERC20.metadataIpfsHash()).to.equal(metadataIpfsHash)
+      expect(await dropERC20.expiration()).to.equal(expiration)
+      expect(await dropERC20.zkPassSchemaId()).to.equal(zkPassSchemaId)                              
+    })
+  })
+  
   describe("claim direclty", function () {
     // Test 1: Successful claim
     it("should allow a valid user to claim tokens", async function () {
