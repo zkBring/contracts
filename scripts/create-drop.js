@@ -6,7 +6,7 @@ async function main() {
   console.log("Creating new Drop from: ", deployer.address);
   
   // Connect to the already deployed DropFactory
-  const dropFactoryAddress = "0xfab2030f5d52b605990266dd92c162fa871b1148";
+  const dropFactoryAddress = "0x68a0B774d6D49F190779d6A7C8FDCAB3A691EE98";
   const DropFactory = await ethers.getContractFactory("DropFactory");
   const dropFactory = DropFactory.attach(dropFactoryAddress);
 
@@ -20,7 +20,7 @@ async function main() {
   console.log("token approved.")
   const amount = ethers.parseUnits("1000", 18);
   const claims = 5;
-  const metadataIpfsHash = ethers.encodeBytes32String("metadata");
+  const metadataIpfsHash = "bafkreicqtmmxcbjclaf35wsvrncf3nyhmu3m4i7e56hl6dpe5hyuapmlfy";
   const zkPassSchemaId = hexlify(toUtf8Bytes("c38b96722bd24b64b8d349ffd6391a8c"));
   const expiration = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
 
