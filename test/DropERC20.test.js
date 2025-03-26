@@ -61,6 +61,23 @@ describe("DropERC20", function () {
     })
   })
   
+  describe("Update Metadata", function() {
+    it("should allow the owner to update the metadataIpfsHash", async function () {
+      const newMetadataIpfsHash = "QmNewMetadataHash"; // example new IPFS hash
+      await expect(dropERC20.updateMetadata(newMetadataIpfsHash))
+          .to.emit(dropERC20, "MetadataUpdated")
+          .withArgs(newMetadataIpfsHash);
+      expect(await dropERC20.metadataIpfsHash()).to.equal(newMetadataIpfsHash);
+    });
+
+    it("should revert when a non-owner tries to update the metadataIpfsHash", async function () {
+      const newMetadataIpfsHash = "QmAnotherMetadataHash";
+      await expect(
+        dropERC20.connect(user1).updateMetadata(newMetadataIpfsHash)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+  
   describe("claim direclty", function () {
     // Test 1: Successful claim
     it("should allow a valid user to claim tokens", async function () {

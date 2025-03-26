@@ -25,6 +25,7 @@ contract DropERC20 is Ownable {
     address public immutable ZK_PASS_ALLOCATOR_ADDRESS;
 
     event Claimed(address indexed recipient, bytes32 uHash);
+    event MetadataUpdated(string metadataIpfsHash);
     event Stopped();
 
     /**
@@ -187,6 +188,11 @@ contract DropERC20 is Ownable {
         emit Stopped();
     }
 
+    function updateMetadata(string memory _metadataIpfsHash) external onlyOwner {
+        metadataIpfsHash = _metadataIpfsHash;
+        emit MetadataUpdated(_metadataIpfsHash);
+    }
+    
     function verifyAllocatorSignature(
         bytes32 zkPassTaskId, 
         address validator,
