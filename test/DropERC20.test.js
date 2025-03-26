@@ -193,4 +193,62 @@ describe("DropERC20", function () {
         .withArgs(user1.address, amount);
     });
   });
+
+  describe("Stop function", function () {
+    it("should allow the owner to stop the drop and transfer remaining tokens to owner", async function () {
+      // Get owner's token balance before stopping.
+      const ownerBalanceBefore = await token.balanceOf(owner.address);
+      // Calculate the total tokens held by the drop contract.
+      const contractBalance = await token.balanceOf(dropERC20.target);
+      
+      // Call stop as the owner and check that the Stopped event is emitted.
+      await expect(dropERC20.stop())
+        .to.emit(dropERC20, "Stopped");
+
+      // Verify that the drop is marked as stopped.
+      expect(await dropERC20.stopped()).to.equal(true);
+
+      // Ensure the drop contract's balance is now zero.
+      expect(await token.balanceOf(dropERC20.target)).to.equal(0);
+
+      // Verify that the owner's balance has increased by the contract's previous balance.
+      const ownerBalanceAfter = await token.balanceOf(owner.address);
+      expect(ownerBalanceAfter - ownerBalanceBefore).to.equal(contractBalance);
+    });
+
+    it("should not allow non-owners to call stop", async function () {
+      await expect(
+        dropERC20.connect(user1).stop()
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("should revert when stop is called twice", async function () {
+      // Call stop the first time.
+      await dropERC20.stop();
+
+      // Call stop a second time; should revert because the campaign is already stopped.
+      await expect(dropERC20.stop())
+        .to.be.revertedWith("Campaign stopped");
+    });
+
+    it("should prevent claims after stop is called", async function () {
+      // First, stop the drop campaign.
+      await dropERC20.stop();
+
+      // Generate a dummy webproof for testing purposes.
+      const webproof = generateWebproof("0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a");
+
+      // Attempt to claim tokens after the drop has been stopped.
+      await expect(
+        dropERC20.connect(user1).claim(
+          hexlify(toUtf8Bytes(webproof.taskId)),
+          webproof.validatorAddress,
+          webproof.uHash,
+          webproof.publicFieldsHash,
+          webproof.allocatorSignature,
+          webproof.validatorSignature
+        )
+      ).to.be.revertedWith("Campaign stopped");
+    });
+  });
 });
