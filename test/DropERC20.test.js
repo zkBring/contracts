@@ -14,6 +14,7 @@ describe("DropERC20", function () {
   let DropERC20;
   let dropERC20;
   let MockERC20;
+  let bringToken;
   let token;
   let owner;
   let user1;
@@ -31,8 +32,12 @@ describe("DropERC20", function () {
     
     // Deploy mock ERC20 token
     MockERC20 = await ethers.getContractFactory("MockERC20");
-    token = await MockERC20.deploy(ethers.parseUnits("1000000", 18));
+    token = await MockERC20.deploy(ethers.parseUnits("1000000", 18), "Mock Token", "MOCK");
 
+    // Deploy the Bring token
+    bringToken = await MockERC20.deploy(ethers.parseUnits("1000000", 18), "Bring Token", "BRING"); // Mint 1000 tokens
+
+    
     // Deploy DropERC20 contract
     DropERC20 = await ethers.getContractFactory("DropERC20");
     dropERC20 = await DropERC20.deploy(
@@ -43,7 +48,8 @@ describe("DropERC20", function () {
       zkPassSchemaId,
       expiration,
       metadataIpfsHash,
-      ZK_PASS_ALLOCATOR_ADDRESS
+      ZK_PASS_ALLOCATOR_ADDRESS,
+      bringToken.target
     );
     
     // Transfer tokens to the drop contract
@@ -251,4 +257,85 @@ describe("DropERC20", function () {
       ).to.be.revertedWith("Campaign stopped");
     });
   });
-});
+
+  describe("Staking functionality", function () {
+    
+    const stakeAmount1 = ethers.parseUnits("1000", 18);
+    const stakeAmount2 = ethers.parseUnits("500", 18);
+    
+    beforeEach(async function () {
+      // // Deploy a mock bring token
+      // const MockERC20 = await ethers.getContractFactory("MockERC20");
+      
+      // re-deploy DropERC20 with the bring token address
+      DropERC20 = await ethers.getContractFactory("DropERC20");
+      dropERC20 = await DropERC20.deploy(
+        owner.address,
+        token.target,
+        amount,
+        claims,
+        zkPassSchemaId,
+        expiration,
+        metadataIpfsHash,
+        ZK_PASS_ALLOCATOR_ADDRESS,
+        bringToken.target  // new bring token address
+      );
+    
+      // Transfer drop tokens to the drop contract
+      await token.transfer(dropERC20.target, amount * BigInt(claims));
+    });
+
+    it("should allow the owner to stake bring tokens", async function () {
+      // Approve the drop contract to spend bring tokens from the owner
+      await bringToken.connect(owner).approve(dropERC20.target, stakeAmount1);
+      await expect(dropERC20.stake(stakeAmount1)).to.not.be.reverted;
+      
+      // Verify that the contract state updates
+      expect(await dropERC20.bringStaked()).to.equal(stakeAmount1);
+      expect(await bringToken.balanceOf(dropERC20.target)).to.equal(stakeAmount1);
+    });
+
+    it("should allow the owner to stake additional bring tokens", async function () {
+      const totalStake = stakeAmount1 + stakeAmount2;
+      await bringToken.connect(owner).approve(dropERC20.target, totalStake);
+      
+      await dropERC20.stake(stakeAmount1);
+      expect(await dropERC20.bringStaked()).to.equal(stakeAmount1);
+      
+      await dropERC20.stake(stakeAmount2);
+      expect(await dropERC20.bringStaked()).to.equal(totalStake);
+      expect(await bringToken.balanceOf(dropERC20.target)).to.equal(totalStake);
+    });
+    
+    it("should revert when non-owner tries to stake bring tokens", async function () {
+      await bringToken.connect(owner).approve(dropERC20.target, stakeAmount1);
+      await expect(
+        dropERC20.connect(user1).stake(stakeAmount1)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+    
+    it("should revert if staking zero tokens", async function () {
+      await expect(
+        dropERC20.stake(0)
+      ).to.be.revertedWith("Stake amount must be greater than zero");
+    });
+
+    it("should transfer staked bring tokens back to owner when stop is called", async function () {
+      // Owner approves and stakes bring tokens.
+      await bringToken.connect(owner).approve(dropERC20.target, stakeAmount1);
+      await dropERC20.stake(stakeAmount1);
+      
+      const ownerBringBalanceBefore = await bringToken.balanceOf(owner.address);
+      
+      // Call stop to end the campaign.
+      await dropERC20.stop();
+      
+      // Ensure staked tokens are reset.
+      expect(await dropERC20.bringStaked()).to.equal(0);
+      
+      // Owner's balance should increase by the staked amount.
+      const ownerBringBalanceAfter = await bringToken.balanceOf(owner.address);
+      expect(ownerBringBalanceAfter - ownerBringBalanceBefore).to.equal(stakeAmount1);
+    });
+  });
+})

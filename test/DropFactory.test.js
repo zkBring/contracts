@@ -13,11 +13,14 @@ describe("DropFactory", function () {
       MockERC20 = await ethers.getContractFactory("MockERC20");
       [owner, addr1, addr2] = await ethers.getSigners();
       
-        // Deploy the MockERC20 token
-      mockToken = await MockERC20.connect(addr2).deploy(ethers.parseUnits("1000000", 18)); // Mint 1000 tokens
+      // Deploy the MockERC20 token
+      mockToken = await MockERC20.connect(addr2).deploy(ethers.parseUnits("1000000", 18), "Mock Token", "Mock"); // Mint 1000 tokens
 
+      // Deploy the Bring token
+      bringToken = await MockERC20.connect(addr2).deploy(ethers.parseUnits("1000000", 18), "Bring Token", "BRING"); // Mint 1000 tokens
+      
       // Deploy the DropFactory contract
-      dropFactory = await DropFactory.deploy(100, addr1.address, ZK_PASS_ALLOCATOR_ADDRESS); // 1% fee
+      dropFactory = await DropFactory.deploy(100, addr1.address, ZK_PASS_ALLOCATOR_ADDRESS, bringToken.target); // 1% fee
       
       // Approve the DropFactory to spend tokens on behalf of addr2
       await mockToken.connect(addr2).approve(dropFactory.target, ethers.parseUnits("100", 18)); // Approve 100 tokens
@@ -28,7 +31,8 @@ describe("DropFactory", function () {
           expect(await dropFactory.fee()).to.equal(100);
           expect(await dropFactory.feeRecipient()).to.equal(addr1.address);
           expect(await dropFactory.ZK_PASS_ALLOCATOR_ADDRESS()).to.equal(ZK_PASS_ALLOCATOR_ADDRESS);   
-        });
+          expect(await dropFactory.BRING_TOKEN()).to.equal(bringToken.target);
+        });      
     });
 
     describe("Creating Drops", function () {

@@ -9,23 +9,25 @@ contract DropERC20 is Ownable {
     using ECDSA for bytes32;
 
     // Drop configuration
-    address public token;
-    uint256 public amount;       // Amount per claim
-    uint256 public maxClaims;  // Maximum number of claims allowed
+    address public immutable token;
+    uint256 public immutable amount;       // Amount per claim
+    uint256 public immutable maxClaims;  // Maximum number of claims allowed
+    bytes32 public immutable zkPassSchemaId;
+    uint256 public immutable expiration;    // Expiration timestamp
+    address public immutable BRING_TOKEN;
+    address public immutable ZK_PASS_ALLOCATOR_ADDRESS;  // expected allocator address from zkPass.
+    
+    uint256 public bringStaked;
     uint256 public claims;       // Current number of claims
-    bytes32 public zkPassSchemaId;
-    bool public stopped;
-    uint256 public expiration;    // Expiration timestamp
     string public metadataIpfsHash;
-
+    bool public stopped;
+    
     // Mapping to track claimed unique identifiers (uHash)
-    mapping(bytes32 => bool) public claimed;
-
-    // expected allocator address from zkPass.
-    address public immutable ZK_PASS_ALLOCATOR_ADDRESS;
+    mapping(bytes32 => bool) public claimed;  
 
     event Claimed(address indexed recipient, bytes32 uHash);
     event MetadataUpdated(string metadataIpfsHash);
+    event BringStaked(address bringToken, uint256 amount, uint256 totalStaked);
     event Stopped();
 
     /**
@@ -36,7 +38,8 @@ contract DropERC20 is Ownable {
      * @param _maxClaims The total number of claims allowed.
      * @param _zkPassSchemaId The zkPass schema identifier.
      * @param _expiration The expiration timestamp for the drop.
-     * @param _metadataIpfsHash Metadata for the drop (title, description).     
+     * @param _metadataIpfsHash Metadata for the drop (title, description).
+     * @param _bringToken The address of the bring token.
      */
     constructor(
         address _creator,
@@ -46,7 +49,8 @@ contract DropERC20 is Ownable {
         bytes32 _zkPassSchemaId,
         uint256 _expiration,
         string memory _metadataIpfsHash,
-        address _zkPassAllocator
+        address _zkPassAllocator,
+        address _bringToken
     ) {
         token = _token;
         amount = _amount;
@@ -55,6 +59,7 @@ contract DropERC20 is Ownable {
         expiration = _expiration;
         metadataIpfsHash = _metadataIpfsHash;
         ZK_PASS_ALLOCATOR_ADDRESS = _zkPassAllocator;
+        BRING_TOKEN = _bringToken;
         
         // Set the owner to the drop creator.
         _transferOwnership(_creator);
@@ -70,6 +75,20 @@ contract DropERC20 is Ownable {
         _;
     }
 
+    /**
+     * @notice Stake bring tokens. Can be called multiple times to add additional stake.
+     * @param _amount The amount of bring tokens to stake.
+     */
+    function stake(uint256 _amount) external onlyOwner notStopped {
+        require(_amount > 0, "Stake amount must be greater than zero");
+        require(
+            IERC20(BRING_TOKEN).transferFrom(msg.sender, address(this), _amount),
+            "Bring token transfer failed"
+        );
+        bringStaked += _amount;
+        emit BringStaked(BRING_TOKEN, _amount, bringStaked);
+    }
+    
     /**
      * @notice Claim tokens with ephemeral key using a zkPass zkTLS proof.
      * @param zkPassTaskId The zkPass task identifier.
@@ -185,6 +204,13 @@ contract DropERC20 is Ownable {
         stopped = true;
         uint256 remaining = IERC20(token).balanceOf(address(this));
         require(IERC20(token).transfer(owner(), remaining), "Token transfer failed");
+        
+        if (bringStaked > 0) {
+            uint256 bringBalance = IERC20(BRING_TOKEN).balanceOf(address(this));            
+            bringStaked = 0;
+            require(IERC20(BRING_TOKEN).transfer(owner(), bringBalance), "Bring token transfer failed");
+        }
+        
         emit Stopped();
     }
 
