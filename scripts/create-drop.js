@@ -6,7 +6,7 @@ async function main() {
   console.log("Creating new Drop from: ", deployer.address);
   
   // Connect to the already deployed DropFactory
-  const dropFactoryAddress = "0x68a0B774d6D49F190779d6A7C8FDCAB3A691EE98";
+  const dropFactoryAddress = "0x0EB580F0ad587d464f2BE3C27DE7d831fc2f56e6";
   const DropFactory = await ethers.getContractFactory("DropFactory");
   const dropFactory = DropFactory.attach(dropFactoryAddress);
 

@@ -7,7 +7,7 @@ async function main() {
   console.log("Claiming tokens directly from: ", deployer.address);
   
   // Connect to the DropERC20 contract
-  const dropAddress = "0xbc23e986704a429197fda71e8d5e3666c71ba8e9"; // Replace with your drop contract address
+  const dropAddress = "0x189E8e9886E88564AF23465ecAA85Cb219966c9E"; // Replace with your drop contract address
   const DropERC20 = await ethers.getContractFactory("DropERC20");
   const drop = DropERC20.attach(dropAddress);
 
