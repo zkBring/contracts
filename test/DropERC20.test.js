@@ -87,20 +87,13 @@ describe("DropERC20", function () {
   describe("claim direclty", function () {
     // Test 1: Successful claim
     it("should allow a valid user to claim tokens", async function () {
-      const webproof = generateWebproof("0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a")
+      const webproof = generateWebproof(user1.address)      
 
-      const ephemeralWallet = new ethers.Wallet(EPHEMERAL_KEY, ethers.provider);
-      expect(ephemeralWallet.address).to.eq(webproof.recipient);
-      
-      const [deployer] = await ethers.getSigners();
-      const fundingTx = await deployer.sendTransaction({
-        to: ephemeralWallet.address,
-        value: ethers.parseUnits("1", 18), // Sending 1 ETH (adjust as needed)
-      });
-      await fundingTx.wait();
+      expect(await dropERC20.hasUserClaimed(webproof.uHash)).to.equal(false);
+      expect(await dropERC20.hasAddressClaimed(user1.address)).to.equal(false);
       
       // Call claim function
-      await dropERC20.connect(ephemeralWallet).claim(
+      await dropERC20.connect(user1).claim(
         hexlify(toUtf8Bytes(webproof.taskId)),
         webproof.validatorAddress,
         webproof.uHash,
@@ -111,8 +104,11 @@ describe("DropERC20", function () {
       
       const balanceAfter = await token.balanceOf(webproof.recipient);
       expect(balanceAfter).to.equal(amount);
+      expect(await dropERC20.hasUserClaimed(webproof.uHash)).to.equal(true);
+      expect(await dropERC20.hasAddressClaimed(user1.address)).to.equal(true);      
     });
 
+    
     // Test 2: Successful claim with ephemeral key
     it("should allow a valid user to claim tokens with ephemeral key", async function () {
       const ephemeralKeyAddress = "0xecdFC9CA344CE8E71538aFDf05c49E5Cbcd84b1a"

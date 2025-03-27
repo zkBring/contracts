@@ -22,9 +22,10 @@ contract DropERC20 is Ownable {
     string public metadataIpfsHash;
     bool public stopped;
     
-    // Mapping to track claimed unique identifiers (uHash)
-    mapping(bytes32 => bool) public claimed;  
-
+    // Mappings to track claims
+    mapping(bytes32 => bool) public claimedUsers; // by uHash from webproof
+    mapping(address => bool) public claimedAddresses; // by recipient address
+    
     event Claimed(address indexed recipient, bytes32 uHash);
     event MetadataUpdated(string metadataIpfsHash);
     event BringStaked(address bringToken, uint256 amount, uint256 totalStaked);
@@ -79,7 +80,7 @@ contract DropERC20 is Ownable {
      * @notice Stake bring tokens. Can be called multiple times to add additional stake.
      * @param _amount The amount of bring tokens to stake.
      */
-    function stake(uint256 _amount) external onlyOwner notStopped {
+    function stake(uint256 _amount) external onlyOwner notStopped notExpired {
         require(_amount > 0, "Stake amount must be greater than zero");
         require(
             IERC20(BRING_TOKEN).transferFrom(msg.sender, address(this), _amount),
@@ -168,7 +169,8 @@ contract DropERC20 is Ownable {
         bytes memory allocatorSig,
         bytes memory validatorSig
 ) private notStopped notExpired {
-        require(!claimed[uHash], "Already claimed");
+        require(!claimedUsers[uHash], "User (uHash) already claimed");
+        require(!claimedAddresses[recipient], "User address already claimed");        
         require(claims < maxClaims, "All claims exhausted");
 
         // Verify allocator signature.
@@ -178,7 +180,8 @@ contract DropERC20 is Ownable {
         require(verifyValidatorSignature(zkPassTaskId, uHash, publicFieldsHash, webproofRecipient, validator, validatorSig), "Invalid validator signature");
 
         // Mark the claim as used.
-        claimed[uHash] = true;
+        claimedUsers[uHash] = true;
+        claimedAddresses[recipient] = true;        
         claims++;
 
         // Transfer tokens from the contract's balance to the recipient.
@@ -192,8 +195,17 @@ contract DropERC20 is Ownable {
      * @param uHash Unique claim identifier.
      * @return True if already claimed, false otherwise.
      */
-    function isClaimed(bytes32 uHash) external view returns (bool) {
-        return claimed[uHash];
+    function hasUserClaimed(bytes32 uHash) external view returns (bool) {
+        return claimedUsers[uHash];
+    }
+
+    /**
+     * @notice Check if a claim with the given unique identifier has been made.
+     * @param userAddress Unique claim identifier.
+     * @return True if already claimed, false otherwise.
+     */
+    function hasAddressClaimed(address userAddress) external view returns (bool) {
+        return claimedAddresses[userAddress];
     }
 
     /**
@@ -214,7 +226,7 @@ contract DropERC20 is Ownable {
         emit Stopped();
     }
 
-    function updateMetadata(string memory _metadataIpfsHash) external onlyOwner {
+    function updateMetadata(string memory _metadataIpfsHash) external onlyOwner notStopped notExpired {
         metadataIpfsHash = _metadataIpfsHash;
         emit MetadataUpdated(_metadataIpfsHash);
     }
